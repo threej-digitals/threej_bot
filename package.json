@@ -1,0 +1,32 @@
+{
+  "name": "threej_bot",
+  "version": "1.0.0",
+  "description": "Telegram chats promotion and explorer bot",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/threej-digitals/threej_bot.git"
+  },
+  "keywords": [
+    "telegram",
+    "promotion",
+    "telegram",
+    "bot"
+  ],
+  "author": "Jitendra",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/threej-digitals/threej_bot/issues"
+  },
+  "homepage": "https://github.com/threej-digitals/threej_bot#readme",
+  "dependencies": {
+    "axios": "^0.27.2",
+    "cheerio": "^1.0.0-rc.12",
+    "dotenv": "^16.0.2",
+    "pg": "^8.8.0",
+    "telegraf": "^4.9.1"
+  }
+}
