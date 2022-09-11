@@ -1,8 +1,9 @@
-const scrapChat = require('./scrapper');
+/**
+ * Helper class contains common usefull functions
+ */
 class Threej{
-    constructor(){
+    constructor(){}
 
-    }
     /**
      * Converts K M B format to int
      * 
@@ -10,7 +11,7 @@ class Threej{
      * @return {int|false} int or false on failure
      */
     stringToInt(str){
-        format = {
+        const format = {
             "":1,
             k: 1e3,
             K: 1e3,
@@ -21,9 +22,9 @@ class Threej{
             t: 1e12,
             T: 1e12,
         }
-        lastChar = str.slice(-1);
+        let lastChar = str.slice(-1);
         lastChar.match('[a-zA-Z]') ? '' : lastChar = '';
-        int = parseFloat(str) * format[lastChar];
+        const int = parseFloat(str) * format[lastChar];
         return int || false;
     }
 
@@ -46,21 +47,6 @@ class Threej{
   }
 
 }
-
 const threej = new Threej();
 
-class Tgbot extends {Threej, } {
-    constructor(db){
-        this.db = db;
-    }
-
-    logUser(uid) {
-        console.log("🚀 ~ file: threej.js ~ line 7 ~ Tgbot ~ logUser ~ uid", uid)
-    }
-
-    async scrapChat(username){
-        return await scrapChat(username);
-    }
-}
-
-module.exports = { threej, Tgbot }
+module.exports = {Threej, threej};
