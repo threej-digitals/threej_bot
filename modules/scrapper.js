@@ -3,7 +3,35 @@ const cheerio = require('cheerio');
 const { Threej } = require('./threej');
 
 class Scrapper extends Threej{
-    constructor(){super()}
+    constructor(){
+        super()
+        // Format for chatDetails object
+        this.chatDetails = {
+            'listerId' : -1,
+            'listerRole' : -1,
+            'id' : false,
+            'username' : false,
+            'title' : '',
+            'description' : '',
+            'link': '',
+            'photo' : '',
+            'type': '',
+            'status': 0,
+            'postCount':false,
+            'views' : false,
+            'subscribers' : false,
+            'photos' : false,
+            'videos' : false,
+            'links' : false,
+            'files' : false,
+        }
+    }
+
+    /**
+     * 
+     * @param {string} username 
+     * @returns {object} Object containing chat details
+     */
     async scrapChat(username) {
         
         const url = "https://telegram.me/s/" + username;
@@ -33,15 +61,15 @@ class Scrapper extends Threej{
 
     /**
      * scraps telegram chat details from provided dom element
-     * @param {*} res 
-     * @returns {object} with chat details
+     * @param {string} html
+     * @returns {object|false} with chat details
      */
     scrapChatDetailsAndViews(html, username){
         try {
             // console.log(res)
             const $ = cheerio.load(html);
 
-            let chatDetails = {};
+            let chatDetails = this.chatDetails;
             //total post loaded
             const length = $('body > main > div > section > div').length;
             if(!length) return false;
@@ -54,15 +82,12 @@ class Scrapper extends Threej{
                 i==1 ? chatDetails['postCount'] = $('body > main > div > section > div:nth-child('+(length-i)+')').find('div.tgme_widget_message').attr('data-post').split('/')[1] : '' ;
                 let t = $('body > main > div > section > div:nth-child('+(length-i)+')').find('div.tgme_widget_message.text_not_supported_wrap.js-widget_message > div.tgme_widget_message_bubble > div.tgme_widget_message_footer.compact.js-message_footer > div > span.tgme_widget_message_views').text();
                 if(t == '') break;
-                views += this.stringToInt(t) || 0;
+                views += this.rkFormat(t) || 0;
             }
             chatDetails["views"] = views/i;
 
             //type
             chatDetails['type'] = 'channel';
-
-            //id
-            chatDetails['id'] = -1;
             
             //username
             chatDetails['username'] = username;
@@ -76,36 +101,36 @@ class Scrapper extends Threej{
             //photo
             chatDetails['photo'] = $('body > header > div > div.tgme_header_right_column > section > div > div.tgme_channel_info_header > i > img').attr('src') || '';
 
+            //link
+            chatDetails['link'] = 'https://telegram.me/' + username;
+
             //chat counters
-            let counters={};
             $('body > header > div > div.tgme_header_right_column > section > div > div.tgme_channel_info_counters > div').each((k,v)=>{
                 const type = $(v).find('span.counter_type').text();
                 const value = $(v).find('span.counter_value').text();
-                counters[type] = value;
+                chatDetails[type] = this.rkFormat(value);
             })
-            chatDetails['counters'] = counters;
             return chatDetails;
         } catch (error) {
-            console.log(error)
+            this.logError(error);
             return false;
         }
     }
 
+    /**
+     * scraps telegram chat details from provided dom element
+     * @param {string} html
+     * @returns {object|false} with chat details
+     */
     scrapChatDetails(html, username){
         try {
             // console.log(res)
             const $ = cheerio.load(html);
 
-            let chatDetails = {};
-            
-            //id
-            chatDetails['id'] = -1;
+            let chatDetails = this.chatDetails;
             
             //username
             chatDetails['username'] = username;
-
-            //photo
-            chatDetails['photo'] = $('body > div.tgme_page_wrap > div.tgme_body_wrap > div > div.tgme_page_photo > a > img').attr('src') || '';
 
             //title
             chatDetails['title'] = $('body > div.tgme_page_wrap > div.tgme_body_wrap > div > div.tgme_page_title > span').text() || '';
@@ -113,20 +138,29 @@ class Scrapper extends Threej{
             //description
             chatDetails['description'] = $('body > div.tgme_page_wrap > div.tgme_body_wrap > div > div.tgme_page_description').html() || '';
 
+            //photo
+            chatDetails['photo'] = $('body > div.tgme_page_wrap > div.tgme_body_wrap > div > div.tgme_page_photo > a > img').attr('src') || '';
+
+            //link
+            chatDetails['link'] = 'https://telegram.me/' + username;
+
             //chat counters
             const match = $('body > div.tgme_page_wrap > div.tgme_body_wrap > div > div.tgme_page_extra').text().split(',')[0].replace(/ /g,'').match(/(\d+)([a-z]+)/);
             if(!match){
                 chatDetails['type'] = 'bot';
             }else{
-                chatDetails['type'] = (match[2] == 'members' ? 'group' : 'channel');
-                chatDetails['counters'] = {
-                    'subscribers' : match[1]++
+                chatDetails['type'] = (match[2] == 'members' ? 'group' : (match[2] == 'subscribers' ? 'channel' : 'bot'));
+                if(chatDetails['type'] !== 'bot'){
+                    chatDetails['subscribers'] = match[1]++
                 }
+            }
+            if(chatDetails['title'] === '' && chatDetails['title'] === ''){
+                return false;
             }
 
             return chatDetails;
         } catch (error) {
-            console.log(error)
+            this.logError(error);
             return false;
         }
     }

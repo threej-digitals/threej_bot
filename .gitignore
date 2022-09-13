@@ -1,3 +1,6 @@
-.env
 node_modules/
 assets/
+errors/
+.env
+*.html
+*.txt
