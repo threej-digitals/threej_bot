@@ -3,6 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 const axios = require('axios');
+const mysql = require('mysql');
 
 /**
  * Helper class contains common usefull functions
@@ -20,6 +21,16 @@ class Threej{
             K: 1e3,
             "":1
         };
+
+        //create connection to mysql db
+        this.db = mysql.createConnection({
+            host : process.env.HOST,
+            port : process.env.MYSQLPORT,
+            user : process.env.MYSQLUSER,
+            password : process.env.MYSQLPASSWORD,
+            database : process.env.MYSQLDATABASE,
+            connectTimeout : 4000
+        });
     }
 
     /**
@@ -89,6 +100,20 @@ class Threej{
         return int || false;
     }
 
+    async query(sql, values){
+        const db = this.db;
+        return new Promise((resolve,reject)=>{
+            db.query(sql, values,
+                (err, res)=>{
+                    if(err){
+                        reject(err);
+                    }
+                    resolve(res);
+                }
+            )
+        })
+    }
+
     async saveRemoteFile(url, storagePath, filename = 'F' + Date.now()){
         try {
             const writer = fs.createWriteStream(path.resolve(storagePath , filename + path.extname(url)))
@@ -105,6 +130,11 @@ class Threej{
         }
     }
 
+    toCamelCase(text){
+        if(typeof text != 'string') return text;
+        var str = text.toLowerCase();
+        return str.replace(/\b\w/g,(match)=>{return match.toUpperCase()})
+    }
 }
 const threej = new Threej();
 

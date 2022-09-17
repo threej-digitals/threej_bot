@@ -1,5 +1,5 @@
-const mysql = require('mysql');
-const Scrapper = require('./scrapper');
+const scrapper = require('./scrapper');
+const { Threej } = require('./threej');
 
 /**
  * Chat member status as per telegram API
@@ -23,39 +23,38 @@ const CHATSTATUS = {
 }
 
 
-class Tgbot extends Scrapper{
+class Tgbot extends Threej{
     constructor(){
         super()
-        //create connection to mysql db
-        this.db = mysql.createConnection({
-            host : process.env.HOST,
-            port : process.env.MYSQLPORT,
-            user : process.env.MYSQLUSER,
-            password : process.env.MYSQLPASSWORD,
-            database : process.env.MYSQLDATABASE,
-            connectTimeout : 4000
-        });
+        this.user = {};
+        this.chatDetails = {
+            'listerId' : -1,
+            'listerRole' : -1,
+            'id' : false,
+            'username' : false,
+            'title' : '',
+            'description' : '',
+            'link': '',
+            'photo' : '',
+            'type': '',
+            'status': 0,
+            'postCount':false,
+            'views' : false,
+            'subscribers' : false,
+            'photos' : false,
+            'videos' : false,
+            'links' : false,
+            'files' : false,
+        };
     }
 
-    getChat(CIDorUsername){
+    async getChatFromDB(CIDorUsername){
         const column = !Math.round(CIDorUsername) ? 'USERNAME' : 'CHATID';
-        const db = this.db;
-        db.connect();
-
-        return new Promise((resolve, reject)=>{
-            db.query(
-                'SELECT * FROM ?? WHERE ?? = ?',
-                [process.env.CHATSTABLE, column, CIDorUsername],
-                (err, res)=>{
-                    if(err){
-                        this.logError(err)
-                        reject(err);
-                    }
-                    db.end();
-                    resolve(res);
-                }
-            );
-        })
+        const result = await this.query(
+            'SELECT * FROM ?? WHERE ?? = ?',
+            [process.env.CHATSTABLE, column, CIDorUsername]
+        );
+        return this.chatDetails = result[0];
     }
 
     /**
@@ -63,49 +62,90 @@ class Tgbot extends Scrapper{
      * @param {object} chatDetails containing 17 values.
      * @returns 
      */
-    insertChat(chatDetails){
+    async insertChat(chatDetails){
         if(Object.keys(chatDetails).length !== 17){
             this.logError('Column count doesn\'t match:' + JSON.stringify(chatDetails));
             return false;
         }
 
-        const db = this.db;
+        this.chatDetails = chatDetails;
 
-        return new Promise((resolve,reject)=>{
+        try {
             const now = Date.now()/1000;
-            db.query(
-                'INSERT INTO ?? (`LISTERID`, `LISTERROLE`, `CHATID`, `TITLE`, `CHAT_DESC`, `USERNAME`, `CTYPE`, `LINK`, `PHOTO`, `SUBSCOUNT`, `STATUS`, `CUPDATE`, `VIEWS`, `LISTEDON`, `PICSCOUNT`, `VIDEOSCOUNT`, `LINKSCOUNT`, `POSTCOUNT`, `FILECOUNT`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
-                [
-                    process.env.CHATSTABLE,
-                    chatDetails.listerId,
-                    chatDetails.listerRole,
-                    chatDetails.id || null,
-                    chatDetails.title,
-                    chatDetails.description || '',
-                    chatDetails.username || null,
-                    chatDetails.type,
-                    chatDetails.link || '',
-                    chatDetails.photo || '',
-                    chatDetails.subscribers || null,
-                    chatDetails.status,
-                    now,
-                    Math.round(chatDetails.views || null),
-                    now,
-                    chatDetails.photos || null,
-                    chatDetails.videos || null,
-                    chatDetails.links || null,
-                    chatDetails.postCount || null,
-                    chatDetails.file || null
-                ],
-                (err, res)=>{
-                    if(err){
-                        this.logError(err);
-                        reject(err);
-                    }
-                    resolve(res);
+            const sql = 'INSERT INTO ?? (`LISTERID`, `LISTERROLE`, `CHATID`, `TITLE`, `DESCRIPTION`, `USERNAME`, `CTYPE`, `LINK`, `PHOTO`, `SUBSCOUNT`, `STATUS`, `CUPDATE`, `VIEWS`, `LISTEDON`, `PICSCOUNT`, `VIDEOSCOUNT`, `LINKSCOUNT`, `POSTCOUNT`, `FILECOUNT`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)';
+            const values = [
+                process.env.CHATSTABLE,
+                chatDetails.listerId,
+                chatDetails.listerRole,
+                chatDetails.id || null,
+                chatDetails.title,
+                chatDetails.description || '',
+                chatDetails.username || null,
+                chatDetails.type,
+                chatDetails.link || '',
+                chatDetails.photo || '',
+                chatDetails.subscribers || null,
+                chatDetails.status,
+                now,
+                Math.round(chatDetails.views || null),
+                now,
+                chatDetails.photos || null,
+                chatDetails.videos || null,
+                chatDetails.links || null,
+                chatDetails.postCount || null,
+                chatDetails.file || null
+            ]
+            return await this.query(sql, values);
+
+        } catch (error) {
+            this.logError(error);
+            return false;
+        }
+    }
+
+    /**
+     * 
+     * @param {*} user 
+     * @returns 
+     */
+    async logUser(user){
+        var newUser = false;
+
+        if(typeof user !== 'object' || user.id === undefined || user.is_bot === true){
+            this.logError('Unexpected parameter: ' + user.toString())
+            return false;
+        }
+
+        try {
+            const res = await this.query('SELECT * FROM ?? WHERE TGID = ?',[process.env.USERSTABLE, user.id]);
+            Object.keys(res).length == 0 ? newUser = true : this.user = res[0];
+            if(newUser){
+                if(user.username){
+                    const res = await scrapper.getHTML('https://telegram.me/'+ user.username);
+                    const userDetails = await scrapper.scrapChatDetails(res.data);
+                    user.photo = userDetails.photo || '';
                 }
-            )
-        })
+                // Add user to DB
+                const sql = 'INSERT INTO ??(`USERNAME`, `NAME`, `TGID`, `LANGCODE`, `PHOTO`, `REGDATE`) VALUES(?,?,?,?,?,?)';
+                const values = [
+                    process.env.USERSTABLE,
+                    user.username || null,
+                    user.first_name + ' ' + user.last_name,
+                    user.id,
+                    user.language_code,
+                    user.photo || '',
+                    Date.now()/1000
+                ]
+                const result = await this.query(sql, values);
+                if(result.affectedRows)
+                    await this.logUser(user);
+                else return false;
+            }
+            return true;
+        } catch (error) {
+            this.logError(error);
+            return false;
+        }
     }
 
     /**
@@ -117,7 +157,7 @@ class Tgbot extends Scrapper{
     async newChat(chatDetails, listerId){
 
         // lister is a person who list the chat to telegram directory
-        chatDetails['listerId'] = listerId;
+        chatDetails['listerId'] = this.user.TUID;
         chatDetails['listerRole'] = MEMBERSTATUS['member'];
 
         chatDetails['status'] = CHATSTATUS['new'];
@@ -125,4 +165,4 @@ class Tgbot extends Scrapper{
         return await this.insertChat(chatDetails);
     }
 }
-module.exports = Tgbot;
+module.exports = { Tgbot, CHATSTATUS, MEMBERSTATUS};

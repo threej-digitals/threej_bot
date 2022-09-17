@@ -84,7 +84,7 @@ class Scrapper extends Threej{
                 if(t == '') break;
                 views += this.rkFormat(t) || 0;
             }
-            chatDetails["views"] = views/i;
+            chatDetails["views"] = Math.round(views/i) || views/i;
 
             //type
             chatDetails['type'] = 'channel';
@@ -110,6 +110,10 @@ class Scrapper extends Threej{
                 const value = $(v).find('span.counter_value').text();
                 chatDetails[type] = this.rkFormat(value);
             })
+            if(chatDetails.file){
+                chatDetails.files = chatDetails.file;
+                chatDetails.file = undefined;
+            }
             return chatDetails;
         } catch (error) {
             this.logError(error);
@@ -166,4 +170,5 @@ class Scrapper extends Threej{
     }
 }
 
-module.exports = Scrapper;
+scrapper = new Scrapper();
+module.exports = scrapper;

@@ -1,6 +1,8 @@
 node_modules/
 assets/
-errors/
-.env
+
+.*
 *.html
 *.txt
+t.*
+t[0-9].*
