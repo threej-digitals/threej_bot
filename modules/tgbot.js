@@ -87,7 +87,7 @@ class Tgbot extends Threej{
                 chatDetails.subscribers || null,
                 chatDetails.status,
                 now,
-                Math.round(chatDetails.views || null),
+                Math.round(chatDetails.views) || null,
                 now,
                 chatDetails.photos || null,
                 chatDetails.videos || null,
@@ -161,8 +161,28 @@ class Tgbot extends Threej{
         chatDetails['listerRole'] = MEMBERSTATUS['member'];
 
         chatDetails['status'] = CHATSTATUS['new'];
-        
         return await this.insertChat(chatDetails);
+    }
+
+    /**
+     * 
+     * @param {object} values 
+     * @returns 
+     */
+    async updateChat(chatId, category = null, language = null){
+        const values = [
+            process.env.CHATSTABLE,
+            category,
+            language,
+            chatId
+        ];
+        const sql = 'UPDATE ?? SET CATEGORY = COALESCE(?, CATEGORY), CLANGUAGE = COALESCE(?, CLANGUAGE) WHERE CID = ?';
+        try {
+            return await this.query(sql, values);
+        } catch (error) {
+            this.logError(error);
+            return false;
+        }
     }
 }
 module.exports = { Tgbot, CHATSTATUS, MEMBERSTATUS};

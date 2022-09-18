@@ -1,4 +1,4 @@
-module.exports.type = {
+module.exports.stickers = {
     greetings : [
         "CAACAgIAAxkBAAII1mMlwfFzU2neIX0t0L2zWjnL0mnsAAJKAANZu_wlnfLJgew3IWApBA",
         "CAACAgIAAxkBAAII12MlwqD-Cc2gTPOiAAE92wJ1ldjxjgACIAADwZxgDGWWbaHi0krRKQQ",

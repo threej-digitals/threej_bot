@@ -17,25 +17,24 @@ bot.on('callback_query',(ctx)=>{
 })
 
 bot.start(async (ctx)=>{
-    const stickers = require('./messages/sticker');
-    // console.log(stickers.type.greetings[Math.floor(Math.random() * stickers.type.greetings.length + 1)]);return;
-    await ctx.sendSticker(stickers.type.greetings[Math.floor(Math.random() * stickers.type.greetings.length + 1)])
-    const inlineKeyboard = [
-        [Markup.button.switchToCurrentChat('🔍 Search chats','news')],
-        [Markup.button.callback('List chat','listChat'), Markup.button.callback('List sticker','c2')],
-        [Markup.button.callback('Help','c3'), Markup.button.callback('FAQ','c4')]
-    ]
+    const {stickers} = require('./messages/sticker');
+    const {menu} = require('./keyboards/primaryMenu');
+    
+    //greet with sticker
+    await ctx.sendSticker(stickers.greetings[tgbot.randomInt(stickers.greetings.length)]);
+
+    //send menu for interaction
     await ctx.reply(`List or explore Telegram chats available in the <a href="https://threej.in/">Telegram Directory</a>\n\nSubscribe to @directorygram and @threej_in`,{
         parse_mode: 'HTML',
         disable_web_page_preview:true,
-        reply_markup : Markup.inlineKeyboard(inlineKeyboard).reply_markup
+        reply_markup : Markup.inlineKeyboard(menu(Markup)).reply_markup
     });
     return true;
 })
 
 bot.help(async (ctx) =>{
-    const message = require('./messages/help');
-    await ctx.reply(message.help[tgbot.user.LANGCODE || 'en']);
+    const {msgHelp} = require('./messages/help');
+    await ctx.reply(msgHelp[tgbot.user.LANGCODE || 'en']);
 })
 
 bot.on('text', async (ctx)=>{
@@ -124,9 +123,9 @@ bot.on('text', async (ctx)=>{
             //-----Prepare inline keyboard-----//
             var keyboardArray = [];
             if(CHATSTATUS.new == chatDetails.STATUS){
-                keyboardArray = [Markup.button.callback('✅ List this chat to Telegram Directory',chatDetails.TUID + '')];
+                keyboardArray = [Markup.button.callback('✅ List this chat to Telegram Directory', `chooseCategory#{"cid":${chatDetails.CID}}`)];
             }else if(CHATSTATUS.listed == chatDetails.STATUS){
-                keyboardArray = [Markup.button.callback('❌ Unlist this chat from Telegram Directory',chatDetails.TUID + '')];
+                keyboardArray = [Markup.button.callback('❌ Unlist this chat from Telegram Directory', 'unlist#' + chatDetails.CID)];
             }
             const keyboard = Markup.inlineKeyboard([keyboardArray]);
 

@@ -114,6 +114,21 @@ class Threej{
         })
     }
 
+    /**
+     * 
+     * @param {integer} max 
+     * @param {integer} min 
+     * @returns 
+     */
+    randomInt(max, min = 1){
+        if(min > max){
+            max =  min + max;
+            min = max - min;
+            max = max - min;
+        }
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
     async saveRemoteFile(url, storagePath, filename = 'F' + Date.now()){
         try {
             const writer = fs.createWriteStream(path.resolve(storagePath , filename + path.extname(url)))
