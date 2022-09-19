@@ -115,12 +115,12 @@ class Threej{
     }
 
     /**
-     * 
+     * Random integer between min & max inclusive
      * @param {integer} max 
      * @param {integer} min 
      * @returns 
      */
-    randomInt(max, min = 1){
+    randomInt(max, min = 0){
         if(min > max){
             max =  min + max;
             min = max - min;

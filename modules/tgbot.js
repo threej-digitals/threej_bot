@@ -49,7 +49,7 @@ class Tgbot extends Threej{
     }
 
     async getChatFromDB(CIDorUsername){
-        const column = !Math.round(CIDorUsername) ? 'USERNAME' : 'CHATID';
+        const column = !Math.round(CIDorUsername) ? 'USERNAME' : 'CID';
         const result = await this.query(
             'SELECT * FROM ?? WHERE ?? = ?',
             [process.env.CHATSTABLE, column, CIDorUsername]
@@ -169,14 +169,15 @@ class Tgbot extends Threej{
      * @param {object} values 
      * @returns 
      */
-    async updateChat(chatId, category = null, language = null){
+    async updateChat(chatId, category = null, language = null, status = null){
         const values = [
             process.env.CHATSTABLE,
             category,
             language,
+            CHATSTATUS[status] || null,
             chatId
         ];
-        const sql = 'UPDATE ?? SET CATEGORY = COALESCE(?, CATEGORY), CLANGUAGE = COALESCE(?, CLANGUAGE) WHERE CID = ?';
+        const sql = 'UPDATE ?? SET CATEGORY = COALESCE(?, CATEGORY), CLANGUAGE = COALESCE(?, CLANGUAGE), STATUS = COALESCE(?, STATUS) WHERE CID = ?';
         try {
             return await this.query(sql, values);
         } catch (error) {

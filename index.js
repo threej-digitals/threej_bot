@@ -7,7 +7,11 @@ const tgbot = new Tgbot();
 
 // Log user details to DB when bot is started by new user.
 bot.use(async (ctx, next)=>{
-    await tgbot.logUser(ctx.from);
+    try {
+        await tgbot.logUser(ctx.from || ctx.callbackQuery.from);
+    } catch (error) {
+        tgbot.logError(error);
+    }
     return next();
 })
 
@@ -21,7 +25,7 @@ bot.start(async (ctx)=>{
     const {menu} = require('./keyboards/primaryMenu');
     
     //greet with sticker
-    await ctx.sendSticker(stickers.greetings[tgbot.randomInt(stickers.greetings.length)]);
+    await ctx.sendSticker(stickers.greetings[tgbot.randomInt(stickers.greetings.length-1)]);
 
     //send menu for interaction
     await ctx.reply(`List or explore Telegram chats available in the <a href="https://threej.in/">Telegram Directory</a>\n\nSubscribe to @directorygram and @threej_in`,{
@@ -38,6 +42,7 @@ bot.help(async (ctx) =>{
 })
 
 bot.on('text', async (ctx)=>{
+    ctx.sendChatAction('typing');
     var text = ctx.message.text;
     var username = false;
     try {
@@ -59,10 +64,13 @@ bot.on('text', async (ctx)=>{
             var chatDetails = await tgbot.getChatFromDB(username);
 
             //---- Process new chat ----//
-            if(chatDetails.length == 0){
+            if(!chatDetails || chatDetails.length == 0){
                 //-----Scrap chat details from telegram website----------//
                 const scrapper = require('./modules/scrapper');
                 chatDetails = await scrapper.scrapChat(username);
+                if(typeof chatDetails['photo'] == 'string' && chatDetails['photo'].length > 10){
+                    chatDetails['photo'] = await tgbot.saveRemoteFile(chatDetails['photo'], process.env.ASSETS_FOLDER,'chat'+(chatDetails['id'] || chatDetails['username'])) || '';
+                }
 
                 //-----If unable to scrap chat details request it from telegram api-----//
                 if(!chatDetails){
@@ -80,7 +88,7 @@ bot.on('text', async (ctx)=>{
 
                         const fileLink = await bot.telegram.getFileLink(result.photo.small_file_id);
                         // Download profile pic and store it in server
-                        chatDetails['photo'] = await tgbot.saveRemoteFile(fileLink.href, 'assets/img/','chat'+result.id) || '';
+                        chatDetails['photo'] = await tgbot.saveRemoteFile(fileLink.href, process.env.ASSETS_FOLDER,'chat'+result.id) || '';
                     } catch (error) {
                         tgbot.logError(error)
                         ctx.reply('Chat not found!');
@@ -122,20 +130,20 @@ bot.on('text', async (ctx)=>{
             
             //-----Prepare inline keyboard-----//
             var keyboardArray = [];
-            if(CHATSTATUS.new == chatDetails.STATUS){
+
+            //keyboard for new chats
+            if([CHATSTATUS.new, CHATSTATUS.unlisted].includes(parseInt(chatDetails.STATUS)) && tgbot.user.TUID == chatDetails.LISTERID){
                 keyboardArray = [Markup.button.callback('✅ List this chat to Telegram Directory', `chooseCategory#{"cid":${chatDetails.CID}}`)];
-            }else if(CHATSTATUS.listed == chatDetails.STATUS){
+            //keyboard for existing chats
+            }else if(CHATSTATUS.listed == chatDetails.STATUS && tgbot.user.TUID == chatDetails.LISTERID){
                 keyboardArray = [Markup.button.callback('❌ Unlist this chat from Telegram Directory', 'unlist#' + chatDetails.CID)];
             }
-            const keyboard = Markup.inlineKeyboard([keyboardArray]);
 
             //----reply---//
             await ctx.reply(text, {
                 parse_mode: 'HTML',
-                reply_markup: keyboard.reply_markup
-            });
-            // await ctx.reply('Chat listed successfully! checkout ' + process.env.TGPAGELINK + '?tgcontentid=' + response.insertId + '&username=' + username);
-            
+                reply_markup: Markup.inlineKeyboard([keyboardArray]).reply_markup
+            });            
             return true;
         }
 
