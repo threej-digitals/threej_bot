@@ -54,11 +54,11 @@ module.exports.handleCallback = async function (ctx, bot, tgbot, Markup){
         //update category and send language keyboard
         case /^updateCategory#{.*}$/.test(key):
             const {language} = require('../keyboards/language');
-            var result = JSON.parse(key.substr(15));
-            var response = await tgbot.updateChat(result.cid, result.cat);
+            var cbData = JSON.parse(key.substr(15));
+            var response = await tgbot.updateChat(cbData.cid, cbData.cat);
             if(response){
                 await ctx.answerCbQuery('Choose language for this chat.');
-                ctx.editMessageReplyMarkup(Markup.inlineKeyboard(language(result.cid, Markup, LANGUAGES)).reply_markup);
+                ctx.editMessageReplyMarkup(Markup.inlineKeyboard(language(cbData.cid, Markup, LANGUAGES)).reply_markup);
             }else{
                 ctx.sendMessage('Internal error occurred!');
             }
@@ -67,13 +67,13 @@ module.exports.handleCallback = async function (ctx, bot, tgbot, Markup){
         //update language, send chat for moderation and reply user with sharing link
         case /^updateLanguage#{.*}$/.test(key):
             const {stickers} = require('../messages/sticker');
-            var result = JSON.parse(key.substr(15));
+            var cbData = JSON.parse(key.substr(15));
             try {
-                var response = await tgbot.updateChat(result.cid, null, result.lang, 'listed');
+                var response = await tgbot.updateChat(cbData.cid, null, cbData.lang, 'listed');
                 if(response){
                     var sharingLink='';
-                    const chatDetails = await tgbot.getChatFromDB(result.cid);
-                    sharingLink = process.env.TGPAGELINK + '?tgcontentid=' + result.cid + '&username=' + (chatDetails['USERNAME'] || '');
+                    const chatDetails = await tgbot.getChatFromDB(cbData.cid);
+                    sharingLink = process.env.TGPAGELINK + '?tgcontentid=' + cbData.cid + '&username=' + (chatDetails['USERNAME'] || '');
 
                     //Prepare chat to send for moderation
                     if(ctx.callbackQuery.from.id != process.env.BOT_ADMIN){
@@ -81,8 +81,8 @@ module.exports.handleCallback = async function (ctx, bot, tgbot, Markup){
                         await bot.telegram.sendMessage(process.env.BOT_ADMIN, message, {
                             parse_mode: "HTML",
                             reply_markup: Markup.inlineKeyboard([
-                                [Markup.button.callback('Change category & language',`chooseCategory#{"cid":${result.cid}}`)],
-                                [Markup.button.callback('Remove this chat',`removeChat#${result.cid}`)]
+                                [Markup.button.callback('Change category & language',`chooseCategory#{"cid":${cbData.cid}}`)],
+                                [Markup.button.callback('Remove this chat',`removeChat#${cbData.cid}`)]
                             ]).reply_markup
                         });
                     }
@@ -95,8 +95,9 @@ module.exports.handleCallback = async function (ctx, bot, tgbot, Markup){
                     await ctx.sendMessage(message, {
                         parse_mode:'HTML',
                         reply_markup: Markup.inlineKeyboard([
-                            [Markup.button.switchToChat('⭐️ Ask subsribers to rate this chat','cid#'+ result.cid)],
-                            [Markup.button.callback('📣 Promote chat for free.','📣')]
+                            [Markup.button.switchToChat('⭐️ Ask subsribers to rate this chat','cid#'+ cbData.cid)],
+                            [Markup.button.callback('📣 Promote chat for free.','📣')],
+                            [Markup.button.callback('🗑 Remove this chat from Telegram Directory', 'unlist#{"cid":' + chatDetails.CID + '}')]
                         ]).reply_markup
                     });
                     return true;
@@ -108,6 +109,36 @@ module.exports.handleCallback = async function (ctx, bot, tgbot, Markup){
             }
             break;
 
+        //Remove/Unlist the chat
+        case /^unlist#{.*}$/.test(key):
+            var cbData = JSON.parse(key.substr(7));
+            await tgbot.updateChat(cbData.cid, null, null, 'unlisted');
+            await ctx.answerCbQuery('Chat removed from Telegram directory.');
+            ctx.editMessageReplyMarkup(Markup.inlineKeyboard([[]]).reply_markup);
+            break
+        
+        //Handle votes
+        case /^👍#{.*}$/.test(key) || /^👎#{.*}$/.test(key):
+            try {
+                var cbData = JSON.parse(key.substr(3));
+                var action = key.substr(0,2) === '👍' ? 'UPVOTE' : 'DOWNVOTE';
+                await tgbot.insertChatAction(cbData.cid, action);
+                var chatDetails = await tgbot.getChatFromDB(cbData.cid);
+                var ik = ctx.callbackQuery.message.reply_markup.inline_keyboard;
+                //update counters in inline keyboard
+                for (const key in ik) {
+                    for (const key2 in ik[key]) {
+                        if(/.*👍$/.test(ik[key][key2].text)){
+                            ik[key][key2].text = chatDetails.UPVOTES + ' 👍';
+                        }
+                        if(/.*👎$/.test(ik[key][key2].text)){
+                            ik[key][key2].text = chatDetails.DOWNVOTES + ' 👎';
+                        }
+                    }
+                }
+                await ctx.editMessageReplyMarkup(Markup.inlineKeyboard(ik).reply_markup);
+            } catch (error) {/*Ignore this error*/}
+            break;
         default:
             await ctx.sendMessage('Unkown error occurred!');
             tgbot.logError(ctx.callbackQuery);

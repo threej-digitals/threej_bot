@@ -1,5 +1,5 @@
 const scrapper = require('./scrapper');
-const { Threej } = require('./threej');
+const { Threej, threej } = require('./threej');
 
 /**
  * Chat member status as per telegram API
@@ -22,6 +22,13 @@ const CHATSTATUS = {
     'unlisted' : 3
 }
 
+/**
+ * Chat action
+ */
+const CHATACTION = {
+    'UPVOTE' : 1,
+    'DOWNVOTE' : 2
+}
 
 class Tgbot extends Threej{
     constructor(){
@@ -94,6 +101,29 @@ class Tgbot extends Threej{
                 chatDetails.links || null,
                 chatDetails.postCount || null,
                 chatDetails.file || null
+            ]
+            return await this.query(sql, values);
+
+        } catch (error) {
+            this.logError(error);
+            return false;
+        }
+    }
+    /**
+     * New action
+     * @param {integer} chatId 
+     * @param {string} action 
+     * @returns 
+     */
+    async insertChatAction(chatId, action){
+        if(!this.user.TUID) throw new Error('User not found');
+        try {
+            const sql = 'REPLACE INTO ?? (`UID`,`CID`,`ACTION`) VALUES (?,?,?)';
+            const values = [
+                process.env.CHATS_ACTION_TABLE,
+                this.user.TUID,
+                parseInt(chatId),
+                CHATACTION[action]
             ]
             return await this.query(sql, values);
 
@@ -177,7 +207,11 @@ class Tgbot extends Threej{
             CHATSTATUS[status] || null,
             chatId
         ];
-        const sql = 'UPDATE ?? SET CATEGORY = COALESCE(?, CATEGORY), CLANGUAGE = COALESCE(?, CLANGUAGE), STATUS = COALESCE(?, STATUS) WHERE CID = ?';
+        const sql = `UPDATE ?? SET 
+            CATEGORY = COALESCE(?, CATEGORY), 
+            CLANGUAGE = COALESCE(?, CLANGUAGE), 
+            STATUS = COALESCE(?, STATUS) 
+            WHERE CID = ?`;
         try {
             return await this.query(sql, values);
         } catch (error) {

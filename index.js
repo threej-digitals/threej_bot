@@ -131,19 +131,29 @@ bot.on('text', async (ctx)=>{
             //-----Prepare inline keyboard-----//
             var keyboardArray = [];
 
-            //keyboard for new chats
+            //Keyboard with general options for all user
+            keyboardArray.push(Markup.button.callback((chatDetails.UPVOTES || 0) + ' 👍', `👍#{"cid":${chatDetails.CID}}`));
+            keyboardArray.push(Markup.button.callback((chatDetails.DOWNVOTES || 0) + ' 👎', `👎#{"cid":${chatDetails.CID}}`));
+            keyboardArray.push(Markup.button.url('👤 Subscribe', chatDetails.LINK || 'https://telegram.me'));
+            
+            //keyboard for new chats only visible to lister
             if([CHATSTATUS.new, CHATSTATUS.unlisted].includes(parseInt(chatDetails.STATUS)) && tgbot.user.TUID == chatDetails.LISTERID){
-                keyboardArray = [Markup.button.callback('✅ List this chat to Telegram Directory', `chooseCategory#{"cid":${chatDetails.CID}}`)];
-            //keyboard for existing chats
+                keyboardArray.push(Markup.button.callback('✅ List this chat to Telegram Directory', `chooseCategory#{"cid":${chatDetails.CID}}`));
+            Do s
+            }else if([CHATSTATUS.new, CHATSTATUS.unlisted].includes(parseInt(chatDetails.STATUS))){
+                
+            //keyboard for existing chats only visible to lister
             }else if(CHATSTATUS.listed == chatDetails.STATUS && tgbot.user.TUID == chatDetails.LISTERID){
-                keyboardArray = [Markup.button.callback('❌ Unlist this chat from Telegram Directory', 'unlist#' + chatDetails.CID)];
+                keyboardArray.push(Markup.button.callback('📣 Promote', '📣'));
+                keyboardArray.push(Markup.button.callback('🗑 Remove chat', 'unlist#{"cid":' + chatDetails.CID + '}'));
             }
+            keyboardArray.push(Markup.button.callback('❌ Cancel', '💠'));
 
             //----reply---//
             await ctx.reply(text, {
                 parse_mode: 'HTML',
-                reply_markup: Markup.inlineKeyboard([keyboardArray]).reply_markup
-            });            
+                reply_markup: Markup.inlineKeyboard(keyboardArray).reply_markup
+            });
             return true;
         }
 
@@ -160,6 +170,8 @@ bot.on('text', async (ctx)=>{
 bot.on('sticker',(ctx)=>{
     console.log(ctx.message)
 })
+
+// bot.catch((err)=>{tgbot.logError(err)});
 
 bot.launch();
 
