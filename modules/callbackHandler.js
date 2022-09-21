@@ -1,7 +1,6 @@
 const CATEGORIES=["🦁 Animals","🎎 Anime","🎨 Art","📚 Books","🏎 Cars","💼 Career","💃🏼 Celebrity","👨‍👨‍👧‍👦 Community","⛓ Cryptocurrency","👩‍❤️‍👨 Dating","🎓 Educational","🎭 Entertainment","🧐 Facts","💰 Finance","😂 Funny","🎮 Gaming","🃏 GIFs","💻 Hacking","👩‍⚕️ Health","🧛 Horror","🧠 Knowledge","🔮 Life Hacks","💅🏻 Lifestyle","😂 Memes","🎬 Movies","🌞 Motivational","🏕 Nature","📰 News","🤵🏻 Political","🙋🏼 Personal","🏋️ Productive","💻 Programming","🔗 Promotion","🌐 Proxy","🗺 Regional","🥰 Relationship","🔬 Science","🎧 Song","📱 Social","🛒 Shopping","🕉 Spiritual","🏀 Sports","🚀 Startup","🏙 Stickers","📈 Stocks","🤴 Stories","📲 Technical","📨 Telegram","💭 Thoughts","💫 Tips & tricks","✈️ Travelling","🧵 Utility","📹 Videos","🎲 Others"];
 const LANGUAGES=[{'ar' : 'اللغة العربية'},{ 'bn' : 'বাংলা'},{  'cn' : '中国人'},{'de' : 'Deutsche'},{ 'en' : 'English'},{ 'es' : 'Español'},{ 'fr' : 'Français'},{'gu' : 'ગુજરાતી'},{ 'hi' : 'हिंदी'},{ 'id' : 'Indonesian'},{ 'it' : 'Italiano'},{ 'ja' : '日本語'},{ 'kn' : 'ಕನ್ನಡ'},{ 'ko' : '한국어'},{ 'ky' : 'Кыргызча'},{ 'la' : 'Latine'},{ 'ms' : 'Melayu'},{ 'ml' : 'മലയാളം'},{ 'mr' : 'मराठी'},{ 'ne' : 'नेपाली'},{ 'nl' : 'Deutsch'},{ 'no' : 'norsk'},{ 'pa' : 'ਪੰਜਾਬੀ'},{ 'fa' : 'فارسی'},{ 'pt' : 'Português'},{ 'ru' : 'Pусский'},{ 'sa' : 'संस्कृत'},{ 'sv' : 'svenska'},{ 'ta' : 'தமிழ்'},{ 'te' : 'తెలుగు'},{ 'th' : 'ภาษาไทย'},{ 'tr' : 'Türk'},{ 'uk' : 'Український'},{ 'ur' : 'اردو'},{ 'uz' : 'O\'zbek'},{ 'vi' : 'tiếng Việt'},{ 'mt' : 'multiple'},{'' : 'Other'}];
 module.exports.handleCallback = async function (ctx, bot, tgbot, Markup){
-    ctx.answerCbQuery();
     const key = ctx.callbackQuery.data || '';
 
     switch (true) {
@@ -24,7 +23,7 @@ module.exports.handleCallback = async function (ctx, bot, tgbot, Markup){
             });
             break;
         //FAQ's
-        case '🤔' === key:
+        case '❓' === key:
             const {faq} = require('../messages/faq');
             await ctx.editMessageText(faq[tgbot.user.LANGCODE || 'en'],{
                 reply_markup : Markup.inlineKeyboard([[Markup.button.callback('◀️ Back','💠')]]).reply_markup
@@ -76,16 +75,15 @@ module.exports.handleCallback = async function (ctx, bot, tgbot, Markup){
                     sharingLink = process.env.TGPAGELINK + '?tgcontentid=' + cbData.cid + '&username=' + (chatDetails['USERNAME'] || '');
 
                     //Prepare chat to send for moderation
-                    if(ctx.callbackQuery.from.id != process.env.BOT_ADMIN){
-                        var message = `New chat\nLink: ${chatDetails['LINK']}\nCategory: ${CATEGORIES[chatDetails['CATEGORY']]}\nLanguage: ${chatDetails['CLANGUAGE']}\nSharing link: ${sharingLink}`;
-                        await bot.telegram.sendMessage(process.env.BOT_ADMIN, message, {
-                            parse_mode: "HTML",
-                            reply_markup: Markup.inlineKeyboard([
-                                [Markup.button.callback('Change category & language',`chooseCategory#{"cid":${cbData.cid}}`)],
-                                [Markup.button.callback('Remove this chat',`removeChat#${cbData.cid}`)]
-                            ]).reply_markup
-                        });
-                    }
+                    var message = `New chat\nLink: ${chatDetails['LINK']}\nCategory: ${CATEGORIES[chatDetails['CATEGORY']]}\nLanguage: ${chatDetails['CLANGUAGE']}\nSharing link: ${sharingLink}`;
+                    await bot.telegram.sendMessage(process.env.BOT_ADMIN, message, {
+                        parse_mode: "HTML",
+                        reply_markup: Markup.inlineKeyboard([
+                            [Markup.button.callback('Change category & language',`chooseCategory#{"cid":${cbData.cid}}`)],
+                            [Markup.button.callback('Remove this chat',`unlist#{"cid":${cbData.cid}}`)],
+                            [Markup.button.callback('🔞 Mark as NSFW',`🔞#{"cid":${cbData.cid}}`)],
+                        ]).reply_markup
+                    });
 
                     //remove langauge keyboard
                     ctx.editMessageReplyMarkup(Markup.inlineKeyboard([[]]).reply_markup);
@@ -95,9 +93,9 @@ module.exports.handleCallback = async function (ctx, bot, tgbot, Markup){
                     await ctx.sendMessage(message, {
                         parse_mode:'HTML',
                         reply_markup: Markup.inlineKeyboard([
-                            [Markup.button.switchToChat('⭐️ Ask subsribers to rate this chat','cid#'+ cbData.cid)],
+                            [Markup.button.switchToChat('⭐️ Ask subsribers to rate this chat',`cid#${cbData.cid}`)],
                             [Markup.button.callback('📣 Promote chat for free.','📣')],
-                            [Markup.button.callback('🗑 Remove this chat from Telegram Directory', 'unlist#{"cid":' + chatDetails.CID + '}')]
+                            [Markup.button.callback('🗑 Remove this chat from Telegram Directory', `unlist#{"cid":${chatDetails.CID}}`)]
                         ]).reply_markup
                     });
                     return true;
@@ -115,7 +113,7 @@ module.exports.handleCallback = async function (ctx, bot, tgbot, Markup){
             await tgbot.updateChat(cbData.cid, null, null, 'unlisted');
             await ctx.answerCbQuery('Chat removed from Telegram directory.');
             ctx.editMessageReplyMarkup(Markup.inlineKeyboard([[]]).reply_markup);
-            break
+        break
         
         //Handle votes
         case /^👍#{.*}$/.test(key) || /^👎#{.*}$/.test(key):
@@ -138,7 +136,22 @@ module.exports.handleCallback = async function (ctx, bot, tgbot, Markup){
                 }
                 await ctx.editMessageReplyMarkup(Markup.inlineKeyboard(ik).reply_markup);
             } catch (error) {/*Ignore this error*/}
-            break;
+        break;
+        
+        //Mark chat as NSFW
+        case /^🔞#{.*}$/.test(key):
+            try {
+                var cbData = JSON.parse(key.substr(3));
+                await tgbot.updateChatFlag(cbData.cid, 'NSFW');
+                var ik = ctx.callbackQuery.message.reply_markup.inline_keyboard;
+                ik.pop();
+                await ctx.editMessageReplyMarkup(Markup.inlineKeyboard(ik).reply_markup);
+            } catch (error) {
+                tgbot.logError(error);
+                return false;
+            }
+        break;
+
         default:
             await ctx.sendMessage('Unkown error occurred!');
             tgbot.logError(ctx.callbackQuery);

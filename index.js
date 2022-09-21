@@ -20,6 +20,11 @@ bot.on('callback_query',(ctx)=>{
     handleCallback(ctx, bot, tgbot, Markup);
 })
 
+bot.on('inline_query',(ctx)=>{
+    const {handleInlineQueries} = require('./modules/inlineQueryHandler');
+    handleInlineQueries(ctx, bot, tgbot, Markup);
+})
+
 bot.start(async (ctx)=>{
     const {stickers} = require('./messages/sticker');
     const {menu} = require('./keyboards/primaryMenu');
@@ -28,7 +33,7 @@ bot.start(async (ctx)=>{
     await ctx.sendSticker(stickers.greetings[tgbot.randomInt(stickers.greetings.length-1)]);
 
     //send menu for interaction
-    await ctx.reply(`List or explore Telegram chats available in the <a href="https://threej.in/">Telegram Directory</a>\n\nSubscribe to @directorygram and @threej_in`,{
+    await ctx.reply(`List or explore Telegram chats available in the <a href="${process.env.TGPAGELINK}">Telegram Directory</a>\n\nSubscribe to @directorygram and @threej_in`,{
         parse_mode: 'HTML',
         disable_web_page_preview:true,
         reply_markup : Markup.inlineKeyboard(menu(Markup)).reply_markup
@@ -135,25 +140,50 @@ bot.on('text', async (ctx)=>{
             keyboardArray.push(Markup.button.callback((chatDetails.UPVOTES || 0) + ' 👍', `👍#{"cid":${chatDetails.CID}}`));
             keyboardArray.push(Markup.button.callback((chatDetails.DOWNVOTES || 0) + ' 👎', `👎#{"cid":${chatDetails.CID}}`));
             keyboardArray.push(Markup.button.url('👤 Subscribe', chatDetails.LINK || 'https://telegram.me'));
+            keyboardArray.push(Markup.button.switchToChat('↗️ Share', `cid#${chatDetails.CID}`));
             
-            //keyboard for new chats only visible to lister
-            if([CHATSTATUS.new, CHATSTATUS.unlisted].includes(parseInt(chatDetails.STATUS)) && tgbot.user.TUID == chatDetails.LISTERID){
-                keyboardArray.push(Markup.button.callback('✅ List this chat to Telegram Directory', `chooseCategory#{"cid":${chatDetails.CID}}`));
-            Do s
-            }else if([CHATSTATUS.new, CHATSTATUS.unlisted].includes(parseInt(chatDetails.STATUS))){
-                
+            //Keyboard for user other then lister if lister is not creator
+            if(chatDetails.LISTERROLE !== MEMBERSTATUS['creator'] && tgbot.user.TUID !== chatDetails.LISTERID){
+                text += `<b><i>\n\n🛑 NOTE 🛑\nChat is already listed by other user. Click on the below button to claim ownership of this chat</i></b>`;
+                var btn = Markup.button.callback('👮 Claim ownership', `👮#{"cid":${chatDetails.CID}}`);
+                chatDetails.STATUS !== CHATSTATUS.listed ? keyboardArray = [btn] : keyboardArray.push(btn);
+            
             //keyboard for existing chats only visible to lister
             }else if(CHATSTATUS.listed == chatDetails.STATUS && tgbot.user.TUID == chatDetails.LISTERID){
                 keyboardArray.push(Markup.button.callback('📣 Promote', '📣'));
                 keyboardArray.push(Markup.button.callback('🗑 Remove chat', 'unlist#{"cid":' + chatDetails.CID + '}'));
             }
+            keyboardArray.push(Markup.button.callback('🚫 Report', '🚫'));
             keyboardArray.push(Markup.button.callback('❌ Cancel', '💠'));
 
+            //keyboard for new chats only visible to lister
+            if([CHATSTATUS.new, CHATSTATUS.unlisted].includes(parseInt(chatDetails.STATUS)) && tgbot.user.TUID == chatDetails.LISTERID){
+                keyboardArray = [Markup.button.callback('✅ List this chat to Telegram Directory', `chooseCategory#{"cid":${chatDetails.CID}}`)];
+            }
+            
+            var markup = []; var i = 0;
+            keyboardArray.forEach(e =>{
+                var index = Math.floor(i/2);
+                if(markup[index] == undefined)
+                    (markup[index]=[]).push(e);
+                else
+                    markup[index].push(e);
+                i++;
+            })
+
             //----reply---//
-            await ctx.reply(text, {
-                parse_mode: 'HTML',
-                reply_markup: Markup.inlineKeyboard(keyboardArray).reply_markup
-            });
+            if(chatDetails.PHOTO == ''){
+                await ctx.reply(text, {
+                    parse_mode: 'HTML',
+                    reply_markup: Markup.inlineKeyboard(markup).reply_markup
+                });
+            }else{
+                await ctx.replyWithPhoto(chatDetails.PHOTO, {
+                    caption: text,
+                    parse_mode: 'HTML',
+                    reply_markup: Markup.inlineKeyboard(markup).reply_markup
+                });
+            }
             return true;
         }
 

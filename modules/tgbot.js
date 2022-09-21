@@ -30,6 +30,11 @@ const CHATACTION = {
     'DOWNVOTE' : 2
 }
 
+/**
+ * Extras for reporting contents
+ */
+const CHATFLAG = ['SFW','NSFW','Spam','Scam','Violence','Child Abuse','Copyright','Illegal'];
+
 class Tgbot extends Threej{
     constructor(){
         super()
@@ -213,6 +218,28 @@ class Tgbot extends Threej{
             STATUS = COALESCE(?, STATUS) 
             WHERE CID = ?`;
         try {
+            return await this.query(sql, values);
+        } catch (error) {
+            this.logError(error);
+            return false;
+        }
+    }
+
+    /**
+     * Updates chat flag
+     * @param {integer} chatId 
+     * @param {string} flag 
+     * @returns 
+     */
+    async updateChatFlag(chatId, flag){
+        if(!CHATFLAG.includes(flag)) throw new Error('Flag not found');
+        try {
+            const sql = 'UPDATE ?? SET FLAG = ? WHERE CID = ?';
+            const values = [
+                process.env.CHATSTABLE,
+                CHATFLAG.indexOf(flag),
+                chatId
+            ]
             return await this.query(sql, values);
         } catch (error) {
             this.logError(error);
