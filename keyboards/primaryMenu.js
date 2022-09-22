@@ -5,8 +5,8 @@ module.exports.menu = function (Markup){
             Markup.button.callback('🕵️‍♂️ Advance search','🕵️‍♂️')
         ],
         [
-            Markup.button.callback('💬 List chat','💬'),
-            Markup.button.callback('🏞 List sticker','🏞')
+            Markup.button.callback('💬 Add new chat','💬'),
+            Markup.button.callback('🏞 Add new sticker','🏞')
         ],
         [
             Markup.button.callback('📝 My contents','📝'),

@@ -60,6 +60,11 @@ class Tgbot extends Threej{
         };
     }
 
+    /**
+     * Get chat details from DB using cid or username
+     * @param {string|integer} CIDorUsername 
+     * @returns {object}
+     */
     async getChatFromDB(CIDorUsername){
         const column = !Math.round(CIDorUsername) ? 'USERNAME' : 'CID';
         const result = await this.query(
@@ -79,7 +84,10 @@ class Tgbot extends Threej{
             this.logError('Column count doesn\'t match:' + JSON.stringify(chatDetails));
             return false;
         }
-
+        if(chatDetails.description){
+            //strip HTML tags
+            chatDetails.description = chatDetails.description.replace(/<[^>]*>?/gm, '');
+        }
         this.chatDetails = chatDetails;
 
         try {
@@ -91,7 +99,7 @@ class Tgbot extends Threej{
                 chatDetails.listerRole,
                 chatDetails.id || null,
                 chatDetails.title,
-                chatDetails.description || '',
+                chatDetails.description.replace(/<[^>]*>?/gm, '') || '',
                 chatDetails.username || null,
                 chatDetails.type,
                 chatDetails.link || '',
@@ -197,6 +205,22 @@ class Tgbot extends Threej{
 
         chatDetails['status'] = CHATSTATUS['new'];
         return await this.insertChat(chatDetails);
+    }
+
+    /**
+     * Get list of chats
+     * @param {string} query 
+     * @returns {object}
+     */
+    async searchChatsInDB(query){
+        if(typeof query != 'string') throw new Error('Query is invalid');
+        return await this.query(
+            'SELECT * FROM ?? WHERE TITLE LIKE ? ORDER BY SUBSCOUNT DESC LIMIT 50',
+            [
+                process.env.CHATSTABLE,
+                `%${query}%`
+            ]
+        );
     }
 
     /**

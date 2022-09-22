@@ -72,7 +72,7 @@ module.exports.handleCallback = async function (ctx, bot, tgbot, Markup){
                 if(response){
                     var sharingLink='';
                     const chatDetails = await tgbot.getChatFromDB(cbData.cid);
-                    sharingLink = process.env.TGPAGELINK + '?tgcontentid=' + cbData.cid + '&username=' + (chatDetails['USERNAME'] || '');
+                    sharingLink = `${process.env.TGPAGELINK}?tgcontentid=${cbData.cid}&username=${(chatDetails['USERNAME'] || '')}`
 
                     //Prepare chat to send for moderation
                     var message = `New chat\nLink: ${chatDetails['LINK']}\nCategory: ${CATEGORIES[chatDetails['CATEGORY']]}\nLanguage: ${chatDetails['CLANGUAGE']}\nSharing link: ${sharingLink}`;

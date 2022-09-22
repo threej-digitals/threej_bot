@@ -1,16 +1,96 @@
+const { language } = require("../keyboards/language");
+
+const CATEGORIES=["🦁 Animals","🎎 Anime","🎨 Art","📚 Books","🏎 Cars","💼 Career","💃🏼 Celebrity","👨‍👨‍👧‍👦 Community","⛓ Cryptocurrency","👩‍❤️‍👨 Dating","🎓 Educational","🎭 Entertainment","🧐 Facts","💰 Finance","😂 Funny","🎮 Gaming","🃏 GIFs","💻 Hacking","👩‍⚕️ Health","🧛 Horror","🧠 Knowledge","🔮 Life Hacks","💅🏻 Lifestyle","😂 Memes","🎬 Movies","🌞 Motivational","🏕 Nature","📰 News","🤵🏻 Political","🙋🏼 Personal","🏋️ Productive","💻 Programming","🔗 Promotion","🌐 Proxy","🗺 Regional","🥰 Relationship","🔬 Science","🎧 Song","📱 Social","🛒 Shopping","🕉 Spiritual","🏀 Sports","🚀 Startup","🏙 Stickers","📈 Stocks","🤴 Stories","📲 Technical","📨 Telegram","💭 Thoughts","💫 Tips & tricks","✈️ Travelling","🧵 Utility","📹 Videos","🎲 Others"];
+const LANGUAGES={'ar' : 'اللغة العربية', 'bn' : 'বাংলা',  'cn' : '中国人','de' : 'Deutsche', 'en' : 'English', 'es' : 'Español', 'fr' : 'Français','gu' : 'ગુજરાતી', 'hi' : 'हिंदी', 'id' : 'Indonesian', 'it' : 'Italiano', 'ja' : '日本語', 'kn' : 'ಕನ್ನಡ', 'ko' : '한국어', 'ky' : 'Кыргызча', 'la' : 'Latine', 'ms' : 'Melayu', 'ml' : 'മലയാളം', 'mr' : 'मराठी', 'ne' : 'नेपाली', 'nl' : 'Deutsch', 'no' : 'norsk', 'pa' : 'ਪੰਜਾਬੀ', 'fa' : 'فارسی', 'pt' : 'Português', 'ru' : 'Pусский', 'sa' : 'संस्कृत', 'sv' : 'svenska', 'ta' : 'தமிழ்', 'te' : 'తెలుగు', 'th' : 'ภาษาไทย', 'tr' : 'Türk', 'uk' : 'Український', 'ur' : 'اردو', 'uz' : 'O\'zbek', 'vi' : 'tiếng Việt', 'mt' : 'multiple','' : 'Other'};
 module.exports.handleInlineQueries = async function (ctx, bot, tgbot, Markup){
-    console.log(ctx.inlineQuery)
     const query = ctx.inlineQuery.query || '';
 
-    switch (true) {
-        case true:
-            console.log(query);
-        break;
+    //No result for queries with length < 3
+    if(query.length < 3){
+        await ctx.answerInlineQuery([{
+            type: 'article',
+            id:1,
+            title:'🛑 Please enter atleast 3 characters',
+            input_message_content:{
+                message_text :'No result'
+            }
+        }], {cache_time : 315360000});
+    }
 
-        default:
-            await ctx.sendMessage('Unkown error occurred!');
-            tgbot.logError(ctx.callbackQuery);
-            break;
+    switch (true) {
+        case /^cid#\d+/.test(query):
+            try {
+                const chatid = query.substr(4);
+                const chatDetails = await tgbot.getChatFromDB(chatid);
+                //strip html tags
+                chatDetails.DESCRIPTION = chatDetails.DESCRIPTION.replace(/<[^>]*>?/gm, '');
+                //send chat detail with 1hr caching period
+                await ctx.answerInlineQuery([
+                    {
+                        type : 'photo',
+                        id: chatid,
+                        photo_url: 'https://threej.in/contents/img/tg-1001704583841.jpg',
+                        thumb_url: 'https://threej.in/contents/img/tg-1001704583841.jpg',
+                        title: chatDetails.TITLE || '',
+                        description: `@${chatDetails.USERNAME || ''} [${chatDetails.SUBSCOUNT} Subscribers]`,
+                        caption: `<b>${chatDetails.TITLE || ''}</b>\n@${chatDetails.USERNAME || ''}\n·\n👥 ${chat.SUBSCOUNT} · ${CATEGORIES[chat.CATEGORY].replace(' ',' #')} · 🗣 #${LANGUAGES[chat.CLANGUAGE]}\n ·\n<i>${chatDetails.DESCRIPTION}</i>`,
+                        reply_markup: Markup.inlineKeyboard([
+                            [
+                                Markup.button.callback((chatDetails.UPVOTES || 0) + ' 👍', `👍#{"cid":${chatDetails.CID}}`),
+                                Markup.button.callback((chatDetails.DOWNVOTES || 0) + ' 👎', `👎#{"cid":${chatDetails.CID}}`)
+                            ],
+                            [
+                                Markup.button.url('👤 Subscribe', chatDetails.LINK || 'https://telegram.me/' + chatDetails.USERNAME),
+                                Markup.button.callback('🚫 Report', '🚫')
+                            ]
+                        ]).reply_markup,
+                        parse_mode: 'HTML',
+                    }
+                ],{
+                    cache_time: 3600
+                })
+                
+            } catch (error) {
+                tgbot.logError(error);
+            }
+        break;
+        case true:
+            try {
+                const chats = await tgbot.searchChatsInDB(query);
+                var result = [];
+                chats.forEach(chat => {
+                    //strip html tags
+                    chat.DESCRIPTION = chat.DESCRIPTION.replace(/<[^>]*>?/gm, '');
+                    result.push({
+                        type : 'article',
+                        id: chat.CID,
+                        title: chat.TITLE || '',
+                        description: `@${chat.USERNAME || ''} [${chat.SUBSCOUNT} Subscribers]`,
+                        input_message_content: {
+                            message_text: `\n\n<b>${chat.TITLE || ''}</b>\n@${chat.USERNAME || ''}\n\n👥 ${chat.SUBSCOUNT} · ${CATEGORIES[chat.CATEGORY].replace(' ',' #')} · 🗣 #${LANGUAGES[chat.CLANGUAGE]}\n\n<i>${chat.DESCRIPTION}</i><a href="${process.env.TGPAGELINK}?tgcontentid=${chat.CID}&username=${chat.USERNAME || ''}">.</a>`,
+                            parse_mode: 'HTML'
+                        },
+                        reply_markup: Markup.inlineKeyboard([
+                            [
+                                Markup.button.callback((chat.UPVOTES || 0) + ' 👍', `👍#{"cid":${chat.CID}}`),
+                                Markup.button.callback((chat.DOWNVOTES || 0) + ' 👎', `👎#{"cid":${chat.CID}}`)
+                            ],
+                            [
+                                Markup.button.url('👤 Subscribe', chat.LINK || 'https://telegram.me/' + chat.USERNAME),
+                                Markup.button.callback('🚫 Report', '🚫')
+                            ]
+                        ]).reply_markup,
+                        thumb_url: process.env.HOMEURI + chat.PHOTO || '',
+                        hide_url: true
+                    })
+                });
+                //send reuslt with 1hr caching period
+                await ctx.answerInlineQuery(result,{cache_time:3600});
+                
+            } catch (error) {
+                tgbot.logError(error);
+            }
+        break;
     }
     return true;
 }
