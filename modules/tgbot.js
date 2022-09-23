@@ -75,6 +75,20 @@ class Tgbot extends Threej{
     }
 
     /**
+     * Get user contents
+     * @returns {object}
+     */
+     async getUserContents(){
+        return await this.query(
+            'SELECT * FROM ?? WHERE LISTERID = ? ORDER BY LISTEDON LIMIT 50',
+            [
+                process.env.CHATSTABLE,
+                this.user.TUID
+            ]
+        );
+    }
+
+    /**
      * 
      * @param {object} chatDetails containing 17 values.
      * @returns 
@@ -155,29 +169,23 @@ class Tgbot extends Threej{
         var newUser = false;
 
         if(typeof user !== 'object' || user.id === undefined || user.is_bot === true){
-            this.logError('Unexpected parameter: ' + user.toString())
-            return false;
+            throw new Error('Invalid parameter: ' + user.toString())
         }
 
         try {
             const res = await this.query('SELECT * FROM ?? WHERE TGID = ?',[process.env.USERSTABLE, user.id]);
             Object.keys(res).length == 0 ? newUser = true : this.user = res[0];
+
             if(newUser){
-                if(user.username){
-                    const res = await scrapper.getHTML('https://telegram.me/'+ user.username);
-                    const userDetails = await scrapper.scrapChatDetails(res.data);
-                    user.photo = userDetails.photo || '';
-                }
                 // Add user to DB
-                const sql = 'INSERT INTO ??(`USERNAME`, `NAME`, `TGID`, `LANGCODE`, `PHOTO`, `REGDATE`) VALUES(?,?,?,?,?,?)';
+                const sql = 'INSERT INTO ??(`USERNAME`, `NAME`, `TGID`, `LANGCODE`, `REGDATE`) VALUES(?,?,?,?,?)';
                 const values = [
                     process.env.USERSTABLE,
                     user.username || null,
                     user.first_name + ' ' + user.last_name,
                     user.id,
                     user.language_code,
-                    user.photo || '',
-                    Date.now()/1000
+                    user.regdate || Date.now()/1000
                 ]
                 const result = await this.query(sql, values);
                 if(result.affectedRows)

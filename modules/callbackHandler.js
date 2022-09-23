@@ -1,4 +1,4 @@
-const CATEGORIES=["🦁 Animals","🎎 Anime","🎨 Art","📚 Books","🏎 Cars","💼 Career","💃🏼 Celebrity","👨‍👨‍👧‍👦 Community","⛓ Cryptocurrency","👩‍❤️‍👨 Dating","🎓 Educational","🎭 Entertainment","🧐 Facts","💰 Finance","😂 Funny","🎮 Gaming","🃏 GIFs","💻 Hacking","👩‍⚕️ Health","🧛 Horror","🧠 Knowledge","🔮 Life Hacks","💅🏻 Lifestyle","😂 Memes","🎬 Movies","🌞 Motivational","🏕 Nature","📰 News","🤵🏻 Political","🙋🏼 Personal","🏋️ Productive","💻 Programming","🔗 Promotion","🌐 Proxy","🗺 Regional","🥰 Relationship","🔬 Science","🎧 Song","📱 Social","🛒 Shopping","🕉 Spiritual","🏀 Sports","🚀 Startup","🏙 Stickers","📈 Stocks","🤴 Stories","📲 Technical","📨 Telegram","💭 Thoughts","💫 Tips & tricks","✈️ Travelling","🧵 Utility","📹 Videos","🎲 Others"];
+const CATEGORIES=["🦁 Animals & Pets","🎎 Anime","🎨 Art & Paintings","📚 Books","🏎 Cars","💼 Career","💃🏼 Celebrity","👨‍👨‍👧‍👦 Community","⛓ Cryptocurrency","👩‍❤️‍👨 Dating","🎓 Educational","🎭 Entertainment","🧐 Facts","💰 Finance","😂 Funny","🎮 Gaming","🃏 GIFs","💻 Hacking","👩‍⚕️ Health","🧛 Horror","🧠 Knowledge","🔮 Life Hacks","💅🏻 Lifestyle","😂 Memes","🎬 Movies","🌞 Motivational","🏕 Nature","📰 News","🤵🏻 Political","🙋🏼 Personal","🖼 Photography","🏋️ Productive","💻 Programming","🔗 Promotion","🌐 Proxy","🗺 Regional","🥰 Relationship","🔬 Science","🎧 Song","📱 Social","🛒 Shopping","🕉 Spiritual","🏀 Sports","🚀 Startup","🏙 Stickers","📈 Stocks","🤴 Stories","📲 Technical","📨 Telegram","💭 Thoughts","💫 Tips & tricks","✈️ Travelling","🧵 Utility","📹 Videos","🎲 Others"];
 const LANGUAGES=[{'ar' : 'اللغة العربية'},{ 'bn' : 'বাংলা'},{  'cn' : '中国人'},{'de' : 'Deutsche'},{ 'en' : 'English'},{ 'es' : 'Español'},{ 'fr' : 'Français'},{'gu' : 'ગુજરાતી'},{ 'hi' : 'हिंदी'},{ 'id' : 'Indonesian'},{ 'it' : 'Italiano'},{ 'ja' : '日本語'},{ 'kn' : 'ಕನ್ನಡ'},{ 'ko' : '한국어'},{ 'ky' : 'Кыргызча'},{ 'la' : 'Latine'},{ 'ms' : 'Melayu'},{ 'ml' : 'മലയാളം'},{ 'mr' : 'मराठी'},{ 'ne' : 'नेपाली'},{ 'nl' : 'Deutsch'},{ 'no' : 'norsk'},{ 'pa' : 'ਪੰਜਾਬੀ'},{ 'fa' : 'فارسی'},{ 'pt' : 'Português'},{ 'ru' : 'Pусский'},{ 'sa' : 'संस्कृत'},{ 'sv' : 'svenska'},{ 'ta' : 'தமிழ்'},{ 'te' : 'తెలుగు'},{ 'th' : 'ภาษาไทย'},{ 'tr' : 'Türk'},{ 'uk' : 'Український'},{ 'ur' : 'اردو'},{ 'uz' : 'O\'zbek'},{ 'vi' : 'tiếng Việt'},{ 'mt' : 'multiple'},{'' : 'Other'}];
 module.exports.handleCallback = async function (ctx, bot, tgbot, Markup){
     const key = ctx.callbackQuery.data || '';
@@ -13,15 +13,12 @@ module.exports.handleCallback = async function (ctx, bot, tgbot, Markup){
         //list stickers
         case '🏞' === key:
             // await ctx.sendMessage('Okay reply with a sticker or send me the name of sticker set following with $.\n\nFor example: $UtyaD');
-            await ctx.sendMessage('Feature under development.');
-            break;
-        //help
-        case '🚁' === key:
-            const {help} = require('../messages/help');
-            await ctx.editMessageText(help[tgbot.user.LANGCODE || 'en'],{
-                reply_markup : Markup.inlineKeyboard([[Markup.button.callback('◀️ Back','💠')]]).reply_markup
-            });
-            break;
+            await ctx.answerCbQuery('Feature under development.');
+        break;
+        //Advance search options
+        case '🕵️‍♂️' === key:
+            await ctx.answerCbQuery('Feature under development.');
+        break;
         //FAQ's
         case '❓' === key:
             const {faq} = require('../messages/faq');
@@ -35,7 +32,7 @@ module.exports.handleCallback = async function (ctx, bot, tgbot, Markup){
             await ctx.editMessageText(`List or explore Telegram chats available in the <a href="https://threej.in/">Telegram Directory</a>\n\nSubscribe to @directorygram and @threej_in`,{
                 parse_mode: 'HTML',
                 disable_web_page_preview:true,
-                reply_markup : Markup.inlineKeyboard(menu(Markup)).reply_markup
+                reply_markup : Markup.inlineKeyboard(menu(Markup, tgbot.user.TUID)).reply_markup
             });
             break;
 
@@ -122,17 +119,31 @@ module.exports.handleCallback = async function (ctx, bot, tgbot, Markup){
                 var action = key.substr(0,2) === '👍' ? 'UPVOTE' : 'DOWNVOTE';
                 await tgbot.insertChatAction(cbData.cid, action);
                 var chatDetails = await tgbot.getChatFromDB(cbData.cid);
-                var ik = ctx.callbackQuery.message.reply_markup.inline_keyboard;
-                //update counters in inline keyboard
-                for (const key in ik) {
-                    for (const key2 in ik[key]) {
-                        if(/.*👍$/.test(ik[key][key2].text)){
-                            ik[key][key2].text = chatDetails.UPVOTES + ' 👍';
-                        }
-                        if(/.*👎$/.test(ik[key][key2].text)){
-                            ik[key][key2].text = chatDetails.DOWNVOTES + ' 👎';
+                var ik = [];
+                if(ctx.callbackQuery.message){
+                    ik = ctx.callbackQuery.message.reply_markup.inline_keyboard;
+                    //update counters in inline keyboard
+                    for (const key in ik) {
+                        for (const key2 in ik[key]) {
+                            if(/.*👍$/.test(ik[key][key2].text)){
+                                ik[key][key2].text = chatDetails.UPVOTES + ' 👍';
+                            }
+                            if(/.*👎$/.test(ik[key][key2].text)){
+                                ik[key][key2].text = chatDetails.DOWNVOTES + ' 👎';
+                            }
                         }
                     }
+                }else{
+                    ik = [
+                        [
+                            Markup.button.callback(chatDetails.UPVOTES + ' 👍', `👍#{"cid":${chatDetails.CID}}`),
+                            Markup.button.callback(chatDetails.DOWNVOTES + ' 👎', `👎#{"cid":${chatDetails.CID}}`)
+                        ],
+                        [
+                            Markup.button.url('👤 Subscribe', chatDetails.LINK || 'https://telegram.me/' + chatDetails.USERNAME),
+                            Markup.button.callback('🚫 Report', `🚫#{"cid":${chatDetails.CID}}`)
+                        ]
+                    ]
                 }
                 await ctx.editMessageReplyMarkup(Markup.inlineKeyboard(ik).reply_markup);
             } catch (error) {/*Ignore this error*/}
@@ -152,6 +163,10 @@ module.exports.handleCallback = async function (ctx, bot, tgbot, Markup){
             }
         break;
 
+        case /^🚫#{.*}$/.test(key):
+            var cbData = JSON.parse(key.substr(3));
+            await ctx.answerCbQuery('Feature under development!');
+        break;
         default:
             await ctx.sendMessage('Unkown error occurred!');
             tgbot.logError(ctx.callbackQuery);

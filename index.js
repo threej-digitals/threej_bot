@@ -151,7 +151,7 @@ bot.on('text', async (ctx)=>{
             }
             keyboardArray.push(Markup.button.url('💬 Similar chats', `${process.env.TGPAGELINK}?tgcontentid=${chatDetails.CID}&username=${(chatDetails.USERNAME || '')}`));
             keyboardArray.push(Markup.button.switchToChat('↗️ Share', `cid#${chatDetails.CID}`));
-            keyboardArray.push(Markup.button.callback('🚫 Report', '🚫'));
+            keyboardArray.push(Markup.button.callback('🚫 Report', `🚫#${chatDetails.CID}`));
             keyboardArray.push(Markup.button.callback('❌ Cancel', '💠'));
 
             //keyboard for new chats only visible to lister

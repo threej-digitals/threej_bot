@@ -18,6 +18,41 @@ module.exports.handleInlineQueries = async function (ctx, bot, tgbot, Markup){
     }
 
     switch (true) {
+        case 'myContents' === query:
+            try {
+                const chats = await tgbot.getUserContents();
+                var result = [];
+                chats.forEach(chat =>{
+                    //strip html tags
+                    chat.DESCRIPTION = chat.DESCRIPTION.replace(/<[^>]*>?/gm, '');
+                    result.push({
+                        type : 'photo',
+                        id: chat.CID,
+                        photo_url: process.env.HOMEURI + chat.PHOTO || '',
+                        thumb_url: process.env.HOMEURI + chat.PHOTO || '',
+                        title: chat.TITLE || '',
+                        description: `@${chat.USERNAME || ''} [${chat.SUBSCOUNT} Subscribers]`,
+                        caption: `<b>${chat.TITLE || ''}</b>\n@${chat.USERNAME || ''}\n·\n👥 ${chat.SUBSCOUNT} · ${CATEGORIES[chat.CATEGORY].replace(' ',' #')} · 🗣 #${LANGUAGES[chat.CLANGUAGE]}\n ·\n<i>${chat.DESCRIPTION}</i>`,
+                        reply_markup: Markup.inlineKeyboard([
+                            [
+                                Markup.button.callback((chat.UPVOTES || 0) + ' 👍', `👍#{"cid":${chat.CID}}`),
+                                Markup.button.callback((chat.DOWNVOTES || 0) + ' 👎', `👎#{"cid":${chat.CID}}`)
+                            ],
+                            [
+                                Markup.button.url('👤 Subscribe', chat.LINK || 'https://telegram.me/' + chat.USERNAME),
+                                Markup.button.callback('🚫 Report', '🚫')
+                            ]
+                        ]).reply_markup,
+                        parse_mode: 'HTML',
+                    });
+                })
+                //show user contents with 1 min caching period
+                await ctx.answerInlineQuery(result,{cache_time: 60})
+                
+            } catch (error) {
+                tgbot.logError(error);
+            }
+        break;
         case /^cid#\d+/.test(query):
             try {
                 const chatid = query.substr(4);
@@ -33,7 +68,7 @@ module.exports.handleInlineQueries = async function (ctx, bot, tgbot, Markup){
                         thumb_url: 'https://threej.in/contents/img/tg-1001704583841.jpg',
                         title: chatDetails.TITLE || '',
                         description: `@${chatDetails.USERNAME || ''} [${chatDetails.SUBSCOUNT} Subscribers]`,
-                        caption: `<b>${chatDetails.TITLE || ''}</b>\n@${chatDetails.USERNAME || ''}\n·\n👥 ${chat.SUBSCOUNT} · ${CATEGORIES[chat.CATEGORY].replace(' ',' #')} · 🗣 #${LANGUAGES[chat.CLANGUAGE]}\n ·\n<i>${chatDetails.DESCRIPTION}</i>`,
+                        caption: `<b>${chatDetails.TITLE || ''}</b>\n@${chatDetails.USERNAME || ''}\n·\n👥 ${chatDetails.SUBSCOUNT} · ${CATEGORIES[chatDetails.CATEGORY].replace(' ',' #')} · 🗣 #${LANGUAGES[chatDetails.CLANGUAGE]}\n ·\n<i>${chatDetails.DESCRIPTION}</i>`,
                         reply_markup: Markup.inlineKeyboard([
                             [
                                 Markup.button.callback((chatDetails.UPVOTES || 0) + ' 👍', `👍#{"cid":${chatDetails.CID}}`),
@@ -54,6 +89,7 @@ module.exports.handleInlineQueries = async function (ctx, bot, tgbot, Markup){
                 tgbot.logError(error);
             }
         break;
+        //Handle simple queries
         case true:
             try {
                 const chats = await tgbot.searchChatsInDB(query);

@@ -33,6 +33,12 @@ class Threej{
         });
     }
 
+    async base64ToImg(base64String, fileLocation){
+        if(typeof base64String != 'string' || typeof fileLocation != 'string') throw new Error('Invalid parameters supplied.');
+        const buffer = new Buffer.from(base64String, "base64");
+        return await fs.writeFileSync(fileLocation, buffer);
+    }
+
     /**
      * 
      * @param {string} error 
@@ -59,6 +65,8 @@ class Threej{
      * @returns {Array}
      */
     parseCSV(str, delimiter = ','){
+        if(typeof str != 'string') throw new Error('CSV string expected received '+ typeof str);
+        
         if(str.match('\\r\\n')){
             str = str.replaceAll('\r\n','\n');
         }
@@ -132,9 +140,8 @@ class Threej{
     async saveRemoteFile(url, storagePath, filename = 'F' + Date.now()){
         try {
             const writer = fs.createWriteStream(path.resolve(storagePath , filename + path.extname(url)))
-
             const response = await axios.get(url, {responseType:'stream'});
-                
+
             response.data.pipe(writer);
             return new Promise((resolve, reject) => {
                 writer.on('finish', resolve(storagePath + filename + path.extname(url)));
