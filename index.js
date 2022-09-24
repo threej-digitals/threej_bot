@@ -56,7 +56,7 @@ bot.on('text', async (ctx)=>{
 
         if(!username){
             //-----Check for username-----//
-            match = text.match(/@([0-9a-zA-Z-_]*)/);
+            match = text.match(/@([0-9a-zA-Z-_]*).*$/);
             if(match && match.length == 2){
                 username = match[1];
             }
@@ -72,7 +72,7 @@ bot.on('text', async (ctx)=>{
                 const scrapper = require('./modules/scrapper');
                 chatDetails = await scrapper.scrapChat(username);
                 if(typeof chatDetails['photo'] == 'string' && chatDetails['photo'].length > 10){
-                    chatDetails['photo'] = await tgbot.saveRemoteFile(chatDetails['photo'], process.env.ASSETS_FOLDER,'chat'+(chatDetails['id'] || chatDetails['username'])) || '';
+                    chatDetails['photo'] = await tgbot.saveRemoteFile(chatDetails['photo'], process.env.ABS_HOMEPATH + process.env.ASSETS_FOLDER,'chat'+(chatDetails['id'] || chatDetails['username'])) || '';
                 }
 
                 //-----If unable to scrap chat details request it from telegram api-----//
@@ -91,7 +91,7 @@ bot.on('text', async (ctx)=>{
 
                         const fileLink = await bot.telegram.getFileLink(result.photo.small_file_id);
                         // Download profile pic and store it in server
-                        chatDetails['photo'] = await tgbot.saveRemoteFile(fileLink.href, process.env.ASSETS_FOLDER,'chat'+result.id) || '';
+                        chatDetails['photo'] = await tgbot.saveRemoteFile(fileLink.href, process.env.ABS_HOMEPATH + process.env.ASSETS_FOLDER,'chat'+result.id) || '';
                     } catch (error) {
                         tgbot.logError(error)
                         ctx.reply('Chat not found!');
@@ -106,6 +106,7 @@ bot.on('text', async (ctx)=>{
                 }
 
                 //-----Store chat details to DB------//
+                chatDetails.photo = chatDetails.photo.replace(process.env.ABS_HOMEPATH,'');
                 const response = await tgbot.newChat(chatDetails, ctx.from.id);
                 if(response && response.affectedRows){
                     chatDetails = await tgbot.getChatFromDB(chatDetails.username);
@@ -149,7 +150,7 @@ bot.on('text', async (ctx)=>{
                 keyboardArray.push(Markup.button.callback('📣 Promote', '📣'));
                 keyboardArray.push(Markup.button.callback('🗑 Remove chat', `unlist#{"cid":${chatDetails.CID}}`));
             }
-            keyboardArray.push(Markup.button.url('💬 Similar chats', `${process.env.TGPAGELINK}?tgcontentid=${chatDetails.CID}&username=${(chatDetails.USERNAME || '')}`));
+            keyboardArray.push(Markup.button.url('💬 Similar chats', `${process.env.TGPAGELINK}?tgcontentid=${chatDetails.CID}&username=${(chatDetails.USERNAME || '').replace('@','')}`));
             keyboardArray.push(Markup.button.switchToChat('↗️ Share', `cid#${chatDetails.CID}`));
             keyboardArray.push(Markup.button.callback('🚫 Report', `🚫#${chatDetails.CID}`));
             keyboardArray.push(Markup.button.callback('❌ Cancel', '💠'));
@@ -201,7 +202,16 @@ bot.on('sticker',(ctx)=>{
 
 // bot.catch((err)=>{tgbot.logError(err)});
 
-bot.launch();
+// bot.launch();
+// Production
+bot.launch({
+    webhook:{
+        domain: process.env.webhookDomain,// Your domain URL (where server code will be deployed)
+        hookPath: process.env.WEBHOOKPATH,
+        secretToken: process.env.SECRETTOKEN,
+        port: 443
+    }
+})
 
 // Enable graceful stop
 process.once('SIGINT', () => bot.stop('SIGINT'));

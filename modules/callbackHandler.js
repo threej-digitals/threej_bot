@@ -29,11 +29,20 @@ module.exports.handleCallback = async function (ctx, bot, tgbot, Markup){
         //Main menu
         case '💠' === key:
             const {menu} = require('../keyboards/primaryMenu');
-            await ctx.editMessageText(`List or explore Telegram chats available in the <a href="https://threej.in/">Telegram Directory</a>\n\nSubscribe to @directorygram and @threej_in`,{
-                parse_mode: 'HTML',
-                disable_web_page_preview:true,
-                reply_markup : Markup.inlineKeyboard(menu(Markup, tgbot.user.TUID)).reply_markup
-            });
+            try {
+                await ctx.editMessageText(`List or explore Telegram chats available in the <a href="https://threej.in/">Telegram Directory</a>\n\nSubscribe to @directorygram and @threej_in`,{
+                    parse_mode: 'HTML',
+                    disable_web_page_preview:true,
+                    reply_markup : Markup.inlineKeyboard(menu(Markup, tgbot.user.TUID)).reply_markup
+                });
+            } catch (error) {
+                await ctx.deleteMessage();
+                await ctx.reply(`List or explore Telegram chats available in the <a href="https://threej.in/">Telegram Directory</a>\n\nSubscribe to @directorygram and @threej_in`,{
+                    parse_mode: 'HTML',
+                    disable_web_page_preview:true,
+                    reply_markup : Markup.inlineKeyboard(menu(Markup, tgbot.user.TUID)).reply_markup
+                });
+            }
             break;
 
         //Update chat details

@@ -1,6 +1,6 @@
 const { language } = require("../keyboards/language");
 
-const CATEGORIES=["🦁 Animals","🎎 Anime","🎨 Art","📚 Books","🏎 Cars","💼 Career","💃🏼 Celebrity","👨‍👨‍👧‍👦 Community","⛓ Cryptocurrency","👩‍❤️‍👨 Dating","🎓 Educational","🎭 Entertainment","🧐 Facts","💰 Finance","😂 Funny","🎮 Gaming","🃏 GIFs","💻 Hacking","👩‍⚕️ Health","🧛 Horror","🧠 Knowledge","🔮 Life Hacks","💅🏻 Lifestyle","😂 Memes","🎬 Movies","🌞 Motivational","🏕 Nature","📰 News","🤵🏻 Political","🙋🏼 Personal","🏋️ Productive","💻 Programming","🔗 Promotion","🌐 Proxy","🗺 Regional","🥰 Relationship","🔬 Science","🎧 Song","📱 Social","🛒 Shopping","🕉 Spiritual","🏀 Sports","🚀 Startup","🏙 Stickers","📈 Stocks","🤴 Stories","📲 Technical","📨 Telegram","💭 Thoughts","💫 Tips & tricks","✈️ Travelling","🧵 Utility","📹 Videos","🎲 Others"];
+const CATEGORIES=["🦁 Animals & Pets","🎎 Anime","🎨 Art & Paintings","📚 Books","🏎 Cars","💼 Career","💃🏼 Celebrity","👨‍👨‍👧‍👦 Community","⛓ Cryptocurrency","👩‍❤️‍👨 Dating","🎓 Educational","🎭 Entertainment","🧐 Facts","💰 Finance","😂 Funny","🎮 Gaming","🃏 GIFs","💻 Hacking","👩‍⚕️ Health","🧛 Horror","🧠 Knowledge","🔮 Life Hacks","💅🏻 Lifestyle","😂 Memes","🎬 Movies","🌞 Motivational","🏕 Nature","📰 News","🤵🏻 Political","🙋🏼 Personal","🖼 Photography","🏋️ Productive","💻 Programming","🔗 Promotion","🌐 Proxy","🗺 Regional","🥰 Relationship","🔬 Science","🎧 Song","📱 Social","🛒 Shopping","🕉 Spiritual","🏀 Sports","🚀 Startup","🏙 Stickers","📈 Stocks","🤴 Stories","📲 Technical","📨 Telegram","💭 Thoughts","💫 Tips & tricks","✈️ Travelling","🧵 Utility","📹 Videos","🎲 Others",""];
 const LANGUAGES={'ar' : 'اللغة العربية', 'bn' : 'বাংলা',  'cn' : '中国人','de' : 'Deutsche', 'en' : 'English', 'es' : 'Español', 'fr' : 'Français','gu' : 'ગુજરાતી', 'hi' : 'हिंदी', 'id' : 'Indonesian', 'it' : 'Italiano', 'ja' : '日本語', 'kn' : 'ಕನ್ನಡ', 'ko' : '한국어', 'ky' : 'Кыргызча', 'la' : 'Latine', 'ms' : 'Melayu', 'ml' : 'മലയാളം', 'mr' : 'मराठी', 'ne' : 'नेपाली', 'nl' : 'Deutsch', 'no' : 'norsk', 'pa' : 'ਪੰਜਾਬੀ', 'fa' : 'فارسی', 'pt' : 'Português', 'ru' : 'Pусский', 'sa' : 'संस्कृत', 'sv' : 'svenska', 'ta' : 'தமிழ்', 'te' : 'తెలుగు', 'th' : 'ภาษาไทย', 'tr' : 'Türk', 'uk' : 'Український', 'ur' : 'اردو', 'uz' : 'O\'zbek', 'vi' : 'tiếng Việt', 'mt' : 'multiple','' : 'Other'};
 module.exports.handleInlineQueries = async function (ctx, bot, tgbot, Markup){
     const query = ctx.inlineQuery.query || '';
@@ -24,7 +24,10 @@ module.exports.handleInlineQueries = async function (ctx, bot, tgbot, Markup){
                 var result = [];
                 chats.forEach(chat =>{
                     //strip html tags
-                    chat.DESCRIPTION = chat.DESCRIPTION.replace(/<[^>]*>?/gm, '');
+                    chat.DESCRIPTION = (chat.DESCRIPTION || '').replace(/<[^>]*>?/gm, '');
+                    if(typeof chat.CATEGORY != 'number' || chat.CATEGORY > (CATEGORIES.length-1)){
+                        chat.CATEGORY = (CATEGORIES.length - 1);
+                    }
                     result.push({
                         type : 'photo',
                         id: chat.CID,
@@ -46,8 +49,8 @@ module.exports.handleInlineQueries = async function (ctx, bot, tgbot, Markup){
                         parse_mode: 'HTML',
                     });
                 })
-                //show user contents with 1 min caching period
-                await ctx.answerInlineQuery(result,{cache_time: 60})
+                //show user contents
+                await ctx.answerInlineQuery(result)
                 
             } catch (error) {
                 tgbot.logError(error);
@@ -64,8 +67,8 @@ module.exports.handleInlineQueries = async function (ctx, bot, tgbot, Markup){
                     {
                         type : 'photo',
                         id: chatid,
-                        photo_url: 'https://threej.in/contents/img/tg-1001704583841.jpg',
-                        thumb_url: 'https://threej.in/contents/img/tg-1001704583841.jpg',
+                        photo_url: process.env.HOMEURI + chatDetails.PHOTO || '',
+                        thumb_url: process.env.HOMEURI + chatDetails.PHOTO || '',
                         title: chatDetails.TITLE || '',
                         description: `@${chatDetails.USERNAME || ''} [${chatDetails.SUBSCOUNT} Subscribers]`,
                         caption: `<b>${chatDetails.TITLE || ''}</b>\n@${chatDetails.USERNAME || ''}\n·\n👥 ${chatDetails.SUBSCOUNT} · ${CATEGORIES[chatDetails.CATEGORY].replace(' ',' #')} · 🗣 #${LANGUAGES[chatDetails.CLANGUAGE]}\n ·\n<i>${chatDetails.DESCRIPTION}</i>`,
@@ -96,7 +99,10 @@ module.exports.handleInlineQueries = async function (ctx, bot, tgbot, Markup){
                 var result = [];
                 chats.forEach(chat => {
                     //strip html tags
-                    chat.DESCRIPTION = chat.DESCRIPTION.replace(/<[^>]*>?/gm, '');
+                    chat.DESCRIPTION = (chat.DESCRIPTION || '').replace(/<[^>]*>?/gm, '');
+                    if(typeof chat.CATEGORY != 'number' || chat.CATEGORY > (CATEGORIES.length-1)){
+                        chat.CATEGORY = (CATEGORIES.length - 1);
+                    }
                     result.push({
                         type : 'article',
                         id: chat.CID,
