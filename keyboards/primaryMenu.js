@@ -1,7 +1,7 @@
 module.exports.menu = function (Markup){ 
     return [
         [
-            Markup.button.switchToCurrentChat('🔍 Search chats','news'),
+            Markup.button.switchToChat('🔍 Search chats',''),
             Markup.button.callback('🕵️‍♂️ Advance search','🕵️‍♂️')
         ],
         [

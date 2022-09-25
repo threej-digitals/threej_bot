@@ -97,7 +97,11 @@ module.exports.handleCallback = async function (ctx, bot, tgbot, Markup){
 
                     //remove langauge keyboard
                     ctx.editMessageReplyMarkup(Markup.inlineKeyboard([[]]).reply_markup);
-                    //reply with sticker
+
+                    // Do not send confirmation message to moderators
+                    if(ctx.callbackQuery.from.id == process.env.BOT_ADMIN) return true;
+
+                    // Confirmation message reply with sticker & text
                     await ctx.sendSticker(stickers.celebration[tgbot.randomInt(stickers.celebration.length-1)]);
                     message = `<b>Chat listed successfully!</b>\nSharing link: ${sharingLink}\n\n<code><i>Disclaimer:\nChat is sent for moderation and can be removed if any discrepancies found.</i></code>`;
                     await ctx.sendMessage(message, {
