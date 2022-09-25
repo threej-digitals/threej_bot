@@ -8,6 +8,13 @@ const tgbot = new Tgbot();
 // Log user details to DB when bot is started by new user.
 bot.use(async (ctx, next)=>{
     try {
+        // fs.appendFileSync('./t.json',"\n\n\n\n" + JSON.stringify(ctx));
+        if(
+            typeof ctx.from == 'undefined' &&
+            typeof ctx.callbackQuery == 'undefined'
+        ){
+            return true;
+        }
         await tgbot.logUser(ctx.from || ctx.callbackQuery.from);
     } catch (error) {
         tgbot.logError(error);
@@ -29,7 +36,9 @@ bot.start(async (ctx)=>{
     const {stickers} = require('./messages/sticker');
     const {menu} = require('./keyboards/primaryMenu');
     //greet with sticker
-    await ctx.sendSticker(stickers.greetings[tgbot.randomInt(stickers.greetings.length-1)]);
+    await ctx.sendSticker(stickers.greetings[tgbot.randomInt(stickers.greetings.length-1)],{
+        reply_markup: Markup.removeKeyboard().reply_markup
+    });
 
     //send menu for interaction
     await ctx.reply(`Add or explore Telegram chats available in the <a href="${process.env.TGPAGELINK}">Telegram Directory</a>\n\nSubscribe to @directorygram and @threej_in`,{
@@ -41,11 +50,14 @@ bot.start(async (ctx)=>{
 })
 
 bot.help(async (ctx) =>{
-    const {msgHelp} = require('./messages/help');
-    await ctx.reply(msgHelp[tgbot.user.LANGCODE || 'en']);
+    const {faq} = require('./messages/faq');
+    await ctx.reply(faq[tgbot.user.LANGCODE || 'en']);
 })
 
 bot.on('text', async (ctx)=>{
+    // Do not process message if not received from private chat
+    if(ctx.message.chat.type != 'private') return true;
+
     ctx.sendChatAction('typing');
     var text = ctx.message.text;
     var username = false;
@@ -130,7 +142,7 @@ bot.on('text', async (ctx)=>{
                 //strip html tags from description
                 if(e === 'DESCRIPTION') chatDetails[e] = chatDetails[e].replace(/<[^>]*>?/gm, '');
                 if(e === 'USERNAME' && chatDetails[e] !== '') chatDetails[e] = '@' + chatDetails[e];
-                text += `<code>${values[e]}</code> ${chatDetails[e].toString()}\n`;
+                text += `<code>${values[e]}</code> ${(chatDetails[e] || '').toString()}\n`;
             }
             //-----Prepare inline keyboard-----//
             var keyboardArray = [];
@@ -170,13 +182,12 @@ bot.on('text', async (ctx)=>{
             })
 
             //----reply---//
-            if(chatDetails.PHOTO == ''){
+            if(!chatDetails.PHOTO){
                 await ctx.reply(text, {
                     parse_mode: 'HTML',
                     reply_markup: Markup.inlineKeyboard(markup).reply_markup
                 });
             }else{
-                console.log(process.env.HOMEURI + chatDetails.PHOTO);
                 await ctx.replyWithPhoto(process.env.HOMEURI + chatDetails.PHOTO, {
                     caption: text,
                     parse_mode: 'HTML',
@@ -202,16 +213,9 @@ bot.on('sticker',(ctx)=>{
 
 // bot.catch((err)=>{tgbot.logError(err)});
 
-// bot.launch();
+bot.launch();
 // Production
-bot.launch({
-    webhook:{
-        domain: process.env.webhookDomain,// Your domain URL (where server code will be deployed)
-        hookPath: process.env.WEBHOOKPATH,
-        secretToken: process.env.SECRETTOKEN,
-        port: 443
-    }
-})
+// bot.launch({webhook:{domain: process.env.webhookDomain,hookPath: process.env.WEBHOOKPATH,secretToken: process.env.SECRETTOKEN,port: 443}})
 
 // Enable graceful stop
 process.once('SIGINT', () => bot.stop('SIGINT'));

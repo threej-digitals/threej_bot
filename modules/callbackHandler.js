@@ -27,7 +27,7 @@ module.exports.handleCallback = async function (ctx, bot, tgbot, Markup){
             });
             break;
         //Main menu
-        case '💠' === key:
+        case '💠' === key:9
             const {menu} = require('../keyboards/primaryMenu');
             try {
                 await ctx.editMessageText(`List or explore Telegram chats available in the <a href="https://threej.in/">Telegram Directory</a>\n\nSubscribe to @directorygram and @threej_in`,{
@@ -36,12 +36,16 @@ module.exports.handleCallback = async function (ctx, bot, tgbot, Markup){
                     reply_markup : Markup.inlineKeyboard(menu(Markup, tgbot.user.TUID)).reply_markup
                 });
             } catch (error) {
-                await ctx.deleteMessage();
-                await ctx.reply(`List or explore Telegram chats available in the <a href="https://threej.in/">Telegram Directory</a>\n\nSubscribe to @directorygram and @threej_in`,{
-                    parse_mode: 'HTML',
-                    disable_web_page_preview:true,
-                    reply_markup : Markup.inlineKeyboard(menu(Markup, tgbot.user.TUID)).reply_markup
-                });
+                try {
+                    await ctx.deleteMessage();
+                    await ctx.reply(`List or explore Telegram chats available in the <a href="https://threej.in/">Telegram Directory</a>\n\nSubscribe to @directorygram and @threej_in`,{
+                        parse_mode: 'HTML',
+                        disable_web_page_preview:true,
+                        reply_markup : Markup.inlineKeyboard(menu(Markup, tgbot.user.TUID)).reply_markup
+                    });
+                } catch (error) {
+                    tgbot.logError(error);
+                }
             }
             break;
 
@@ -176,10 +180,11 @@ module.exports.handleCallback = async function (ctx, bot, tgbot, Markup){
             var cbData = JSON.parse(key.substr(3));
             await ctx.answerCbQuery('Feature under development!');
         break;
+
         default:
-            await ctx.sendMessage('Unkown error occurred!');
             tgbot.logError(ctx.callbackQuery);
-            break;
+            await ctx.reply('Unkown error occurred!');
+        break;
     }
     return true;
 }

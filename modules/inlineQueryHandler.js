@@ -24,7 +24,7 @@ module.exports.handleInlineQueries = async function (ctx, bot, tgbot, Markup){
                 var result = [];
                 chats.forEach(chat =>{
                     //strip html tags
-                    chat.DESCRIPTION = (chat.DESCRIPTION || '').replace(/<[^>]*>?/gm, '');
+                    chat.DESCRIPTION = chat.DESCRIPTION.replace(/<[^>]*>?/gm, '');
                     if(typeof chat.CATEGORY != 'number' || chat.CATEGORY > (CATEGORIES.length-1)){
                         chat.CATEGORY = (CATEGORIES.length - 1);
                     }
@@ -99,7 +99,7 @@ module.exports.handleInlineQueries = async function (ctx, bot, tgbot, Markup){
                 var result = [];
                 chats.forEach(chat => {
                     //strip html tags
-                    chat.DESCRIPTION = (chat.DESCRIPTION || '').replace(/<[^>]*>?/gm, '');
+                    chat.DESCRIPTION = chat.DESCRIPTION.replace(/<[^>]*>?/gm, '');
                     if(typeof chat.CATEGORY != 'number' || chat.CATEGORY > (CATEGORIES.length-1)){
                         chat.CATEGORY = (CATEGORIES.length - 1);
                     }

@@ -184,7 +184,7 @@ class Tgbot extends Threej{
                     user.username || null,
                     user.first_name + ' ' + user.last_name,
                     user.id,
-                    user.language_code,
+                    user.language_code || 'en',
                     user.regdate || Date.now()/1000
                 ]
                 const result = await this.query(sql, values);
