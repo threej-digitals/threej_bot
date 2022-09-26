@@ -1,22 +1,29 @@
 require('dotenv').config();
-const { Telegraf, Markup } = require('telegraf');
-const {Tgbot, CHATSTATUS, MEMBERSTATUS} = require('./modules/tgbot');
+const { Telegraf, Markup, Context} = require('telegraf');
+const {Tgbot} = require('./modules/tgbot');
 const fs = require('fs');
 
 const bot = new Telegraf(process.env.BOT_TOKEN);
 const tgbot = new Tgbot();
 
-// Log user details to DB when bot is started by new user.
 bot.use(async (ctx, next)=>{
     try {
         // fs.appendFileSync('./t.json',"\n\n\n\n" + JSON.stringify(ctx));
+        //Decide when to respond
         if(
             typeof ctx.from == 'undefined' &&
             typeof ctx.callbackQuery == 'undefined'
         ){
             return true;
         }
+        // Log user details to DB when bot is started by new user.
         await tgbot.logUser(ctx.from || ctx.callbackQuery.from);
+
+        // Handle bot commands
+        if(ctx?.message?.entities && ctx.message.entities[0].type == 'bot_command'){
+            const {handleCommands} = require('./modules/commands');
+            return handleCommands(ctx.update, tgbot);
+        }
     } catch (error) {
         tgbot.logError(error);
     }
@@ -31,54 +38,6 @@ bot.on('callback_query',(ctx)=>{
 bot.on('inline_query',(ctx)=>{
     const {handleInlineQueries} = require('./modules/inlineQueryHandler');
     handleInlineQueries(ctx, bot, tgbot, Markup);
-})
-
-bot.start(async (ctx, next)=>{
-    // Handle start payload
-    if(ctx.startPayload){
-        if(typeof ctx.startPayload == 'string'){
-            try {
-                var payload = {};
-                atob(ctx.startPayload).split('&').forEach(e=>{
-                    var t = e.split('=');
-                    payload[t[0]] = t[1]
-                });
-                if(payload['cid']){
-                    const chatDetails = await tgbot.getChatFromDB(payload['cid']);
-                    const {text, markup} = require('./cards/chatDetails');
-                    return await ctx.reply(text(chatDetails),{
-                        parse_mode: 'HTML',
-                        reply_markup: Markup.inlineKeyboard(
-                            markup(chatDetails, Markup, tgbot, MEMBERSTATUS, CHATSTATUS)
-                        ).reply_markup
-                    })
-                }
-            } catch (error) {
-                tgbot.logError(error);
-            }
-            
-        }
-    }
-
-    const {stickers} = require('./messages/sticker');
-    const {menu} = require('./keyboards/primaryMenu');
-    //greet with sticker
-    await ctx.sendSticker(stickers.greetings[tgbot.randomInt(stickers.greetings.length-1)],{
-        reply_markup: Markup.removeKeyboard().reply_markup
-    });
-
-    //send menu for interaction
-    await ctx.reply(`Add or explore Telegram chats available in the <a href="${process.env.TGPAGELINK}">Telegram Directory</a>\n\nSubscribe to @directorygram and @threej_in`,{
-        parse_mode: 'HTML',
-        disable_web_page_preview:true,
-        reply_markup : Markup.inlineKeyboard(menu(Markup)).reply_markup
-    });
-    return true;
-})
-
-bot.help(async (ctx) =>{
-    const {faq} = require('./messages/faq');
-    await ctx.reply(faq[tgbot.user.LANGCODE || 'en']);
 })
 
 bot.on('text', async (ctx)=>{
@@ -156,23 +115,20 @@ bot.on('text', async (ctx)=>{
             }
 
             //---- Get chat details card -----//
-            const {text, markup} = require('./cards/chatDetails');
+            const {chatDetailsCard} = require('./cards/chatDetails');
+            const {text, markup} = chatDetailsCard(chatDetails, Markup, tgbot);
 
             //----reply---//
             if(!chatDetails.PHOTO){
-                await ctx.reply(text(chatDetails), {
+                return await ctx.reply(text,{
                     parse_mode: 'HTML',
-                    reply_markup: Markup.inlineKeyboard(
-                        markup(chatDetails, Markup, tgbot, MEMBERSTATUS, CHATSTATUS)
-                    ).reply_markup
+                    reply_markup: Markup.inlineKeyboard(markup).reply_markup
                 });
             }else{
                 await ctx.replyWithPhoto(process.env.HOMEURI + chatDetails.PHOTO, {
-                    caption: text(chatDetails),
+                    caption: text,
                     parse_mode: 'HTML',
-                    reply_markup: Markup.inlineKeyboard(
-                        markup(chatDetails, Markup, tgbot, MEMBERSTATUS, CHATSTATUS)
-                    ).reply_markup
+                    reply_markup: Markup.inlineKeyboard(markup).reply_markup
                 });
             }
             return true;
@@ -192,11 +148,39 @@ bot.on('sticker',(ctx)=>{
     console.log(ctx.message)
 })
 
-// bot.catch((err)=>{tgbot.logError(err)});
+bot.catch((err)=>{tgbot.logError(err)});
 
-bot.launch();
+bot.launch({
+    polling:{
+        allowed_updates: [
+            'callback_query',
+            'inline_query',
+            'message',
+            'chat_member',
+            'chat_join_request',
+            'my_chat_member'
+        ]
+    }
+});
 // Production
-// bot.launch({webhook:{domain: process.env.webhookDomain,hookPath: process.env.WEBHOOKPATH,secretToken: process.env.SECRETTOKEN,port: 443}})
+/*
+bot.launch({
+    webhook:{
+        domain: process.env.webhookDomain,
+        hookPath: process.env.WEBHOOKPATH,
+        secretToken: process.env.SECRETTOKEN,
+        port: 443,
+        allowed_updates: [
+            'callback_query',
+            'inline_query',
+            'message',
+            'chat_member',
+            'chat_join_request',
+            'my_chat_member'
+        ]
+    }
+})
+*/
 
 // Enable graceful stop
 process.once('SIGINT', () => bot.stop('SIGINT'));

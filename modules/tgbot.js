@@ -169,7 +169,8 @@ class Tgbot extends Threej{
         var newUser = false;
 
         if(typeof user !== 'object' || user.id === undefined || user.is_bot === true){
-            throw new Error('Invalid parameter: ' + user.toString())
+            var text = JSON.stringify(user) || user.toString();
+            throw new Error('Invalid parameter: ' + text);
         }
 
         try {

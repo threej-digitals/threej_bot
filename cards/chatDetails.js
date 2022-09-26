@@ -1,5 +1,5 @@
-module.exports.text = function (chatDetails) {
-    console.log(chatDetails);
+const {MEMBERSTATUS, CHATSTATUS} = require('../modules/tgbot');
+module.exports.chatDetailsCard = function (chatDetails, Markup, tgbot) {
     //----Format chat details as text message----//
     var text = '<b>Verify chat details</b>\n\n';
     const values = {
@@ -16,10 +16,7 @@ module.exports.text = function (chatDetails) {
         if(e === 'USERNAME' && chatDetails[e] !== '') chatDetails[e] = '@' + chatDetails[e];
         text += `<code>${values[e]}</code> ${(chatDetails[e] || '').toString()}\n`;
     }
-    return text;
-}
 
-module.exports.markup = function (chatDetails, Markup, tgbot, MEMBERSTATUS, CHATSTATUS){
     //-----Prepare inline keyboard-----//
     var keyboardArray = [];
 
@@ -56,5 +53,5 @@ module.exports.markup = function (chatDetails, Markup, tgbot, MEMBERSTATUS, CHAT
             markup[index].push(e);
         i++;
     })
-    return markup;
+    return {text, markup};
 }
