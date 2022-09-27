@@ -26,11 +26,10 @@ module.exports.handleCallback = async function (ctx, tgbot){
             break;
             //FAQ's
             case '❓' === key:
-                const {faq} = require('../messages/faq');
-                await ctx.editMessageText(faq[tgbot.user.LANGCODE || 'en'],{
-                    parse_mode: 'HTML',
-                    reply_markup : Markup.inlineKeyboard([[Markup.button.callback('◀️ Back','💠')]]).reply_markup
-                });
+                const {sendFaqs} = require('../messages/faq');
+                await sendFaqs(ctx, tgbot.user.LANGCODE, 'editMessageText' ,
+                    Markup.inlineKeyboard([[Markup.button.callback('◀️ Back','💠')]]).reply_markup
+                );
                 break;
             //Cancel previous actions & show Main menu
             case '💠' === key:9
@@ -127,9 +126,18 @@ module.exports.handleCallback = async function (ctx, tgbot){
             break
             
             //Handle votes
-            case /^👍#{.*}$/.test(key) || /^👎#{.*}$/.test(key):
-                var cbData = JSON.parse(key.substr(3));
-                var action = key.substr(0,2) === '👍' ? 'UPVOTE' : 'DOWNVOTE';
+            case /^👍#{.*}$/.test(key) || /^👎#{.*}$/.test(key) || /"action":"(up|down)"/.test(key):
+                var cbData = {};
+                var action = '';
+                //compatibility for prev version
+                if(/"action":"(up|down)"/.test(key)){
+                    cbData = JSON.parse(key);
+                    action = cbData.action === 'up' ? 'UPVOTE' : 'DOWNVOTE';
+                }else{
+                    cbData = JSON.parse(key.substr(3));
+                    action = key.substr(0,2) === '👍' ? 'UPVOTE' : 'DOWNVOTE';
+                }
+
                 await tgbot.insertChatAction(cbData.cid, action);
                 var chatDetails = await tgbot.getChatFromDB(cbData.cid);
                 var ik = [];
@@ -193,8 +201,13 @@ module.exports.handleCallback = async function (ctx, tgbot){
                 await ctx.answerCbQuery('✅ Promotion request sent to moderators.');
                 await bot.telegram.sendMessage(process.env.BOT_ADMIN, `New promotion request for chat ${chatDetails.TITLE}[@${chatDetails.USERNAME}][${chatDetails.LINK}]`,{
                     reply_markup: Markup.inlineKeyboard([
-                        [Markup.button.callback('Approve',`📣✅#{"uid":${tgbot.user.TGID}}`)],
-                        [Markup.button.switchToChat('Promote',`cid#${chatDetails.CID}`)]
+                        [
+                            Markup.button.callback('Approve',`📣✅#{"uid":${tgbot.user.TGID}}`),
+                            Markup.button.switchToChat('Promote',`cid#${chatDetails.CID}`)
+                        ],
+                        [
+                            Markup.button.callback('Post to Reddit',`📣reddit#{"cid":${chatDetails.CID}}`),
+                        ]
                     ]).reply_markup
                 });
             break;
@@ -203,6 +216,21 @@ module.exports.handleCallback = async function (ctx, tgbot){
             case /^📣✅#{.*}$/.test(key):
                 var cbData = JSON.parse(key.substr(4));
                 await bot.telegram.sendMessage(cbData.uid,`✅ Your promotion request has been accepted.`);
+            break;
+
+            //post to reddit
+            case /^📣reddit#{.*}$/.test(key):
+                var cbData = JSON.parse(key.substr(9));
+                var chatDetails = await tgbot.getChatFromDB(cbData.cid);
+
+                // Only lister can request for promotion
+                if(process.env.BOT_ADMIN != tgbot.user.TGID) return;
+
+                sharingLink = `${process.env.TGPAGELINK}?tgcontentid=${cbData.cid}&username=${(chatDetails['USERNAME'] || '')}`;
+                await tgbot.postLinkToReddit(
+                    `${chatDetails.TITLE} | ${CATEGORIES[chatDetails.CATEGORY]}`,
+                    sharingLink
+                );
             break;
 
             default:

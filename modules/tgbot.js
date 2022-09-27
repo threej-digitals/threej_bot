@@ -1,3 +1,5 @@
+const axios = require('axios');
+const qs = require('qs');
 const scrapper = require('./scrapper');
 const { Threej, threej } = require('./threej');
 
@@ -269,6 +271,51 @@ class Tgbot extends Threej{
 
         chatDetails['status'] = CHATSTATUS['new'];
         return await this.insertChat(chatDetails);
+    }
+
+    async postLinkToReddit(title, link){
+        // console.log(process.env);return
+        var data = qs.stringify({
+            'grant_type': 'password',
+            'username': process.env.REDDIT_USERNAME,
+            'password': process.env.REDDIT_PASSWORD
+        });
+        var config = {
+            method: 'post',
+            url: 'https://www.reddit.com/api/v1/access_token',
+            headers: { 
+              'Authorization': 'Basic ' + process.env.REDDIT_SECRET,
+              'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            data : data
+        };
+        
+        try {
+            var response = await axios(config)
+            if(typeof response.data.access_token == 'undefined') return;
+
+            data = qs.stringify({
+                'title': title,
+                'kind': 'link',
+                'url': link,
+                'sr': 'Telegram_Directory' 
+            });
+            config = {
+                method: 'post',
+                url: 'https://oauth.reddit.com/api/submit',
+                headers: { 
+                    'Authorization': 'Bearer ' + response.data.access_token,
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                data : data
+            };
+            
+            return await axios(config);
+        } catch (error) {
+            console.log(error);
+            this.logError(error.data);
+        }
+        
     }
 
     /**

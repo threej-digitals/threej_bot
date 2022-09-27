@@ -66,10 +66,8 @@ module.exports.handleCommands = function(update, tgbot){
         if(ctx.chat?.type != 'private' && ctx.message.text != '/faqs@' + ctx.botInfo.username){
             return;
         }
-        const {faq} = require('../messages/faq');
-        await ctx.reply(faq[tgbot.user.LANGCODE || 'en'],{
-            parse_mode: 'HTML'
-        });
+        const {sendFaqs} = require('../messages/faq');
+        return await sendFaqs(ctx, tgbot.user.LANGCODE);
     });
 
     // /help in private chat
@@ -79,12 +77,13 @@ module.exports.handleCommands = function(update, tgbot){
         }
 
         const {help} = require('../messages/help');
-        await ctx.reply(help[tgbot.user.LANGCODE || 'en']);
+        return await ctx.reply(help[tgbot.user.LANGCODE || 'en']);
     });
 
     // /stats - statistics for admin
     bot.command('stats', async (ctx)=>{
-        if(tgbot.user.TUID != process.env.BOT_ADMIN) return;
+        console.log(tgbot.user);
+        if(tgbot.user.TGID != process.env.BOT_ADMIN) return;
         const stats = await tgbot.getBotStats();
         return await ctx.reply(`New users: ${stats.newUsers}\n\nTotal: ${stats.total}`);
     })
