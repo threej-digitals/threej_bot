@@ -32,7 +32,7 @@ module.exports.chatDetailsCard = function (chatDetails, Markup, tgbot) {
 
     //keyboard for existing chats only visible to lister
     }else if(CHATSTATUS.listed == chatDetails.STATUS && tgbot.user.TUID == chatDetails.LISTERID){
-        keyboardArray.push(Markup.button.callback('📣 Promote', '📣'));
+        keyboardArray.push(Markup.button.callback('📣 Promote', `📣#{"cid":${chatDetails.CID}}`));
         keyboardArray.push(Markup.button.callback('🗑 Remove chat', `unlist#{"cid":${chatDetails.CID}}`));
     }
     keyboardArray.push(Markup.button.url('💬 Similar chats', `${process.env.TGPAGELINK}?tgcontentid=${chatDetails.CID}&username=${(chatDetails.USERNAME || '').replace('@','')}`));

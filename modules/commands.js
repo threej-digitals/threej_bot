@@ -6,13 +6,11 @@ module.exports.handleCommands = function(update, tgbot){
 
     // /start in groups
     bot.command('start' + process.env.BOT_USERNAME, async (ctx)=>{
-        if (ctx.chat?.type !== 'group') return;
-
         //send menu for interaction
         await ctx.reply(`Search Telegram chats, groups & stickers 👇`,{
             reply_markup : Markup.inlineKeyboard([
                 [Markup.button.switchToCurrentChat('🔎 Search chats','')],
-                [Markup.button.url('➕ Add your chat','telegram.me/')]
+                [Markup.button.url('➕ Add your chat','telegram.me/' + ctx.botInfo.username)]
             ]).reply_markup
         });
     })
@@ -65,20 +63,30 @@ module.exports.handleCommands = function(update, tgbot){
 
     // /faqs
     bot.command('faqs', async (ctx)=>{
-        if(ctx.chat?.type == 'group' && ctx.message.text != '/faqs@' + ctx.botInfo.username){
+        if(ctx.chat?.type != 'private' && ctx.message.text != '/faqs@' + ctx.botInfo.username){
             return;
         }
         const {faq} = require('../messages/faq');
-        await ctx.reply(faq[tgbot.user.LANGCODE || 'en']);
+        await ctx.reply(faq[tgbot.user.LANGCODE || 'en'],{
+            parse_mode: 'HTML'
+        });
     });
 
     // /help in private chat
     bot.command('help', async (ctx)=>{
-        if(ctx.chat?.type == 'group' && ctx.message.text != '/help@' + ctx.botInfo.username){
+        if(ctx.chat?.type != 'private' && ctx.message.text != '/help@' + ctx.botInfo.username){
             return;
         }
 
         const {help} = require('../messages/help');
         await ctx.reply(help[tgbot.user.LANGCODE || 'en']);
     });
+
+    // /stats - statistics for admin
+    bot.command('stats', async (ctx)=>{
+        if(tgbot.user.TUID != process.env.BOT_ADMIN) return;
+        const stats = await tgbot.getBotStats();
+        return await ctx.reply(`New users: ${stats.newUsers}\n\nTotal: ${stats.total}`);
+    })
+
 }

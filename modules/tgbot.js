@@ -60,6 +60,21 @@ class Tgbot extends Threej{
         };
     }
 
+    async getBotStats(){
+        let stats = {};
+        // Total user count
+        let result = await this.query('SELECT COUNT(*) as TOTAL FROM ??',[process.env.USERSTABLE]);
+        stats.total = result[0].TOTAL;
+
+        // New users in last 24 hr
+        result = await this.query('SELECT COUNT(*) as TOTAL FROM ?? WHERE REGDATE > ?',[
+            process.env.USERSTABLE,
+            ((Date.now()/1000) - 86400)
+        ]);
+        stats.newUsers = result[0].TOTAL;
+        return stats;
+    }
+
     /**
      * Get chat details from DB using cid or username
      * @param {string|integer} CIDorUsername 
@@ -136,6 +151,7 @@ class Tgbot extends Threej{
             return false;
         }
     }
+
     /**
      * New action
      * @param {integer} chatId 
@@ -162,16 +178,55 @@ class Tgbot extends Threej{
 
     /**
      * 
+     * @param {object} error Error object received from telegram api
+     * @returns {boolean}
+     */
+    knownErrors(error){
+        const dismissableErrors = [
+            'not enough rights',
+            'message to delete not found',
+            'bot was kicked',
+            'not in the chat',
+            'need to be inviter of a user',
+            'matching document found for id',
+            'bot is not a member',
+            'user is an administrator of the chat',
+            'USER_NOT_PARTICIPANT',
+            'CHAT_ADMIN_REQUIRED',
+            "message can't be deleted",
+            'group chat was upgraded to a supergroup',
+            'CHANNEL_PRIVATE',
+            'method is available only for supergroups',
+            'have no rights to send a message',
+            'CHAT_WRITE_FORBIDDEN',
+            'message identifier is not specified',
+            'demote chat creator',
+            'USER_BANNED_IN_CHANNEL',
+            'Too Many Requests',
+            'message is not modified'
+        ];
+        for (const message of dismissableErrors) {
+            if (error.message.indexOf(message) > -1) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * 
      * @param {*} user 
      * @returns 
      */
     async logUser(user){
         var newUser = false;
 
-        if(typeof user !== 'object' || user.id === undefined || user.is_bot === true){
+        if(typeof user !== 'object' || user.id === undefined){
             var text = JSON.stringify(user) || user.toString();
             throw new Error('Invalid parameter: ' + text);
         }
+        
+        if(user.is_bot === true) return false;
 
         try {
             const res = await this.query('SELECT * FROM ?? WHERE TGID = ?',[process.env.USERSTABLE, user.id]);

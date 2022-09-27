@@ -1,83 +1,84 @@
+const { Telegraf, Markup } = require('telegraf');
+const bot = new Telegraf(process.env.BOT_TOKEN);
+
 const CATEGORIES=["🦁 Animals & Pets","🎎 Anime","🎨 Art & Paintings","📚 Books","🏎 Cars","💼 Career","💃🏼 Celebrity","👨‍👨‍👧‍👦 Community","⛓ Cryptocurrency","👩‍❤️‍👨 Dating","🎓 Educational","🎭 Entertainment","🧐 Facts","💰 Finance","😂 Funny","🎮 Gaming","🃏 GIFs","💻 Hacking","👩‍⚕️ Health","🧛 Horror","🧠 Knowledge","🔮 Life Hacks","💅🏻 Lifestyle","😂 Memes","🎬 Movies","🌞 Motivational","🏕 Nature","📰 News","🤵🏻 Political","🙋🏼 Personal","🖼 Photography","🏋️ Productive","💻 Programming","🔗 Promotion","🌐 Proxy","🗺 Regional","🥰 Relationship","🔬 Science","🎧 Song","📱 Social","🛒 Shopping","🕉 Spiritual","🏀 Sports","🚀 Startup","🏙 Stickers","📈 Stocks","🤴 Stories","📲 Technical","📨 Telegram","💭 Thoughts","💫 Tips & tricks","✈️ Travelling","🧵 Utility","📹 Videos","🎲 Others"];
 const LANGUAGES=[{'ar' : 'اللغة العربية'},{ 'bn' : 'বাংলা'},{  'cn' : '中国人'},{'de' : 'Deutsche'},{ 'en' : 'English'},{ 'es' : 'Español'},{ 'fr' : 'Français'},{'gu' : 'ગુજરાતી'},{ 'hi' : 'हिंदी'},{ 'id' : 'Indonesian'},{ 'it' : 'Italiano'},{ 'ja' : '日本語'},{ 'kn' : 'ಕನ್ನಡ'},{ 'ko' : '한국어'},{ 'ky' : 'Кыргызча'},{ 'la' : 'Latine'},{ 'ms' : 'Melayu'},{ 'ml' : 'മലയാളം'},{ 'mr' : 'मराठी'},{ 'ne' : 'नेपाली'},{ 'nl' : 'Deutsch'},{ 'no' : 'norsk'},{ 'pa' : 'ਪੰਜਾਬੀ'},{ 'fa' : 'فارسی'},{ 'pt' : 'Português'},{ 'ru' : 'Pусский'},{ 'sa' : 'संस्कृत'},{ 'sv' : 'svenska'},{ 'ta' : 'தமிழ்'},{ 'te' : 'తెలుగు'},{ 'th' : 'ภาษาไทย'},{ 'tr' : 'Türk'},{ 'uk' : 'Український'},{ 'ur' : 'اردو'},{ 'uz' : 'O\'zbek'},{ 'vi' : 'tiếng Việt'},{ 'mt' : 'multiple'},{'' : 'Other'}];
-module.exports.handleCallback = async function (ctx, bot, tgbot, Markup){
+
+module.exports.handleCallback = async function (ctx, tgbot){
     const key = ctx.callbackQuery.data || '';
 
-    switch (true) {
-        //menu handlers
+    try {
+        switch (true) {
+            //menu handlers
 
-        //List chat
-        case '💬' === key:
-            await ctx.sendMessage('Okay send me the 🔗 link or username of a public chat...');
+            //List chat
+            case '💬' === key:
+                await ctx.sendMessage('Okay send me the 🔗 link or username of a public chat...');
+                break;
+            //list stickers
+            case '🏞' === key:
+                // await ctx.sendMessage('Okay reply with a sticker or send me the name of sticker set following with $.\n\nFor example: $UtyaD');
+                await ctx.answerCbQuery('Feature under development.');
             break;
-        //list stickers
-        case '🏞' === key:
-            // await ctx.sendMessage('Okay reply with a sticker or send me the name of sticker set following with $.\n\nFor example: $UtyaD');
-            await ctx.answerCbQuery('Feature under development.');
-        break;
-        //Advance search options
-        case '🕵️‍♂️' === key:
-            await ctx.answerCbQuery('Feature under development.');
-        break;
-        //FAQ's
-        case '❓' === key:
-            const {faq} = require('../messages/faq');
-            await ctx.editMessageText(faq[tgbot.user.LANGCODE || 'en'],{
-                reply_markup : Markup.inlineKeyboard([[Markup.button.callback('◀️ Back','💠')]]).reply_markup
-            });
+            //Advance search options
+            case '🕵️‍♂️' === key:
+                await ctx.answerCbQuery('Feature under development.');
             break;
-        //Main menu
-        case '💠' === key:9
-            const {menu} = require('../keyboards/primaryMenu');
-            try {
-                await ctx.editMessageText(`List or explore Telegram chats available in the <a href="https://threej.in/">Telegram Directory</a>\n\nSubscribe to @directorygram and @threej_in`,{
+            //FAQ's
+            case '❓' === key:
+                const {faq} = require('../messages/faq');
+                await ctx.editMessageText(faq[tgbot.user.LANGCODE || 'en'],{
                     parse_mode: 'HTML',
-                    disable_web_page_preview:true,
-                    reply_markup : Markup.inlineKeyboard(menu(Markup, tgbot.user.TUID)).reply_markup
+                    reply_markup : Markup.inlineKeyboard([[Markup.button.callback('◀️ Back','💠')]]).reply_markup
                 });
-            } catch (error) {
+                break;
+            //Cancel previous actions & show Main menu
+            case '💠' === key:9
+                const {menu} = require('../keyboards/primaryMenu');
                 try {
+                    await ctx.editMessageText(`List or explore Telegram chats available in the <a href="https://threej.in/">Telegram Directory</a>\n\nSubscribe to @directorygram and @threej_in`,{
+                        parse_mode: 'HTML',
+                        disable_web_page_preview:true,
+                        reply_markup : Markup.inlineKeyboard(menu(Markup, tgbot.user.TUID)).reply_markup
+                    });
+                } catch (error) {
                     await ctx.deleteMessage();
                     await ctx.reply(`List or explore Telegram chats available in the <a href="https://threej.in/">Telegram Directory</a>\n\nSubscribe to @directorygram and @threej_in`,{
                         parse_mode: 'HTML',
                         disable_web_page_preview:true,
                         reply_markup : Markup.inlineKeyboard(menu(Markup, tgbot.user.TUID)).reply_markup
                     });
-                } catch (error) {
-                    tgbot.logError(error);
                 }
-            }
-            break;
+                break;
 
-        //Update chat details
+            //Update chat details
 
-        //Send category keyboard
-        case /^chooseCategory#{.*}$/.test(key):
-            const {category} = require('../keyboards/category');
-            const cid = JSON.parse(key.substr(15)).cid;
+            //Send category keyboard
+            case /^chooseCategory#{.*}$/.test(key):
+                const {category} = require('../keyboards/category');
+                const cid = JSON.parse(key.substr(15)).cid;
 
-            await ctx.answerCbQuery('Choose category for this chat.');
-            await ctx.editMessageReplyMarkup(Markup.inlineKeyboard(category(cid, Markup, CATEGORIES)).reply_markup);
-            break;
+                await ctx.answerCbQuery('Choose category for this chat.');
+                await ctx.editMessageReplyMarkup(Markup.inlineKeyboard(category(cid, Markup, CATEGORIES)).reply_markup);
+                break;
 
-        //update category and send language keyboard
-        case /^updateCategory#{.*}$/.test(key):
-            const {language} = require('../keyboards/language');
-            var cbData = JSON.parse(key.substr(15));
-            var response = await tgbot.updateChat(cbData.cid, cbData.cat);
-            if(response){
-                await ctx.answerCbQuery('Choose language for this chat.');
-                ctx.editMessageReplyMarkup(Markup.inlineKeyboard(language(cbData.cid, Markup, LANGUAGES)).reply_markup);
-            }else{
-                ctx.sendMessage('Internal error occurred!');
-            }
-            break;
+            //update category and send language keyboard
+            case /^updateCategory#{.*}$/.test(key):
+                const {language} = require('../keyboards/language');
+                var cbData = JSON.parse(key.substr(15));
+                var response = await tgbot.updateChat(cbData.cid, cbData.cat);
+                if(response){
+                    await ctx.answerCbQuery('Choose language for this chat.');
+                    ctx.editMessageReplyMarkup(Markup.inlineKeyboard(language(cbData.cid, Markup, LANGUAGES)).reply_markup);
+                }else{
+                    ctx.sendMessage('Internal error occurred!');
+                }
+                break;
 
-        //update language, send chat for moderation and reply user with sharing link
-        case /^updateLanguage#{.*}$/.test(key):
-            const {stickers} = require('../messages/sticker');
-            var cbData = JSON.parse(key.substr(15));
-            try {
+            //update language, send chat for moderation and reply user with sharing link
+            case /^updateLanguage#{.*}$/.test(key):
+                const {stickers} = require('../messages/sticker');
+                var cbData = JSON.parse(key.substr(15));
                 var response = await tgbot.updateChat(cbData.cid, null, cbData.lang, 'listed');
                 if(response){
                     var sharingLink='';
@@ -115,23 +116,18 @@ module.exports.handleCallback = async function (ctx, bot, tgbot, Markup){
                     return true;
                 }
                 throw new Error(response);
-            } catch (error) {
-                tgbot.logError(error);
-                ctx.sendMessage('Internal error occurred!');
-            }
             break;
 
-        //Remove/Unlist the chat
-        case /^unlist#{.*}$/.test(key):
-            var cbData = JSON.parse(key.substr(7));
-            await tgbot.updateChat(cbData.cid, null, null, 'unlisted');
-            await ctx.answerCbQuery('Chat removed from Telegram directory.');
-            ctx.editMessageReplyMarkup(Markup.inlineKeyboard([[]]).reply_markup);
-        break
-        
-        //Handle votes
-        case /^👍#{.*}$/.test(key) || /^👎#{.*}$/.test(key):
-            try {
+            //Remove/Unlist the chat
+            case /^unlist#{.*}$/.test(key):
+                var cbData = JSON.parse(key.substr(7));
+                await tgbot.updateChat(cbData.cid, null, null, 'unlisted');
+                await ctx.answerCbQuery('Chat removed from Telegram directory.');
+                ctx.editMessageReplyMarkup(Markup.inlineKeyboard([[]]).reply_markup);
+            break
+            
+            //Handle votes
+            case /^👍#{.*}$/.test(key) || /^👎#{.*}$/.test(key):
                 var cbData = JSON.parse(key.substr(3));
                 var action = key.substr(0,2) === '👍' ? 'UPVOTE' : 'DOWNVOTE';
                 await tgbot.insertChatAction(cbData.cid, action);
@@ -163,32 +159,61 @@ module.exports.handleCallback = async function (ctx, bot, tgbot, Markup){
                     ]
                 }
                 await ctx.editMessageReplyMarkup(Markup.inlineKeyboard(ik).reply_markup);
-            } catch (error) {/*Ignore this error*/}
-        break;
-        
-        //Mark chat as NSFW
-        case /^🔞#{.*}$/.test(key):
-            try {
+            break;
+            
+            //Mark chat as NSFW
+            case /^🔞#{.*}$/.test(key):
                 var cbData = JSON.parse(key.substr(3));
+
+                //update flag
                 await tgbot.updateChatFlag(cbData.cid, 'NSFW');
+
+                //update reply markup
                 var ik = ctx.callbackQuery.message.reply_markup.inline_keyboard;
                 ik.pop();
                 await ctx.editMessageReplyMarkup(Markup.inlineKeyboard(ik).reply_markup);
-            } catch (error) {
-                tgbot.logError(error);
-                return false;
-            }
-        break;
+            break;
 
-        case /^🚫#{.*}$/.test(key):
-            var cbData = JSON.parse(key.substr(3));
-            await ctx.answerCbQuery('Feature under development!');
-        break;
+            case /^🚫#{.*}$/.test(key):
+                var cbData = JSON.parse(key.substr(3));
+                await ctx.answerCbQuery('Feature under development!');
+            break;
 
-        default:
-            tgbot.logError(ctx.callbackQuery);
-            await ctx.reply('Unkown error occurred!');
-        break;
+            //Promotion
+            case /^📣#{.*}$/.test(key):
+                var cbData = JSON.parse(key.substr(3));
+                var chatDetails = await tgbot.getChatFromDB(cbData.cid);
+
+                // Only lister can request for promotion
+                if(chatDetails.LISTERID != tgbot.user.TUID) return;
+
+                if(chatDetails.UPVOTES + chatDetails.DOWNVOTES < 5){
+                    return await ctx.answerCbQuery('❌ Chat is not eligible. See /faqs for more details.');
+                }
+                await ctx.answerCbQuery('✅ Promotion request sent to moderators.');
+                await bot.telegram.sendMessage(process.env.BOT_ADMIN, `New promotion request for chat ${chatDetails.TITLE}[@${chatDetails.USERNAME}][${chatDetails.LINK}]`,{
+                    reply_markup: Markup.inlineKeyboard([
+                        [Markup.button.callback('Approve',`📣✅#{"uid":${tgbot.user.TGID}}`)],
+                        [Markup.button.switchToChat('Promote',`cid#${chatDetails.CID}`)]
+                    ]).reply_markup
+                });
+            break;
+
+            //promotion confirmation to user
+            case /^📣✅#{.*}$/.test(key):
+                var cbData = JSON.parse(key.substr(4));
+                await bot.telegram.sendMessage(cbData.uid,`✅ Your promotion request has been accepted.`);
+            break;
+
+            default:
+                tgbot.logError(ctx.callbackQuery);
+                await ctx.reply('Unkown error occurred!');
+            break;
+        }
+    } catch (error) {
+        ctx.answerCbQuery();
+        if(!tgbot.knownErrors(error))
+            tgbot.logError(error);
     }
     return true;
 }

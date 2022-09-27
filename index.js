@@ -17,22 +17,22 @@ bot.use(async (ctx, next)=>{
             return true;
         }
         // Log user details to DB when bot is started by new user.
-        await tgbot.logUser(ctx.from || ctx.callbackQuery.from);
+        if(!(await tgbot.logUser(ctx.from || ctx.callbackQuery.from))) return;
 
         // Handle bot commands
         if(ctx?.message?.entities && ctx.message.entities[0].type == 'bot_command'){
             const {handleCommands} = require('./modules/commands');
             return handleCommands(ctx.update, tgbot);
         }
+        return next();
     } catch (error) {
         tgbot.logError(error);
     }
-    return next();
 })
 
 bot.on('callback_query',(ctx)=>{
     const {handleCallback} = require('./modules/callbackHandler');
-    handleCallback(ctx, bot, tgbot, Markup);
+    handleCallback(ctx, tgbot);
 })
 
 bot.on('inline_query',(ctx)=>{
