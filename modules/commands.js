@@ -1,8 +1,57 @@
 const { Telegraf, Markup } = require('telegraf');
 const bot = new Telegraf(process.env.BOT_TOKEN);
+const { commands } = require('../messages/commands');
+const botUsername = process.env.BOT_USERNAME;
 
 module.exports.handleCommands = function(update, tgbot){
     bot.handleUpdate(update);
+
+    // List of commands to reply for in groups
+    bot.command(
+        [
+            'faqs' + botUsername,
+            'help' + botUsername,
+            'start' + botUsername
+        ],
+        async ctx => {
+            // return if not group chat
+            if(ctx.chat?.type === 'private') return;
+
+            // reply with corresponding message
+            return await ctx.reply(
+                commands[tgbot.user.LANGCODE || 'en'][ctx.message.text.substring(1, ctx.message.text.length - botUsername.length)],
+                {
+                    parse_mode :'HTML',
+                    disable_web_page_preview:true
+                }
+            );
+        }
+    )
+
+    // List of commands to reply for in private msg with bot
+    bot.command(
+        [
+            'addNewChat',
+            'addNewGroup',
+            'addNewBot',
+            'addNewSticker',
+            'faqs',
+            'help'
+        ],
+        async ctx => {
+            // return if not private chat
+            if(ctx.chat?.type != 'private') return;
+            
+            // reply with corresponding message
+            return await ctx.reply(
+                commands[tgbot.user.LANGCODE || 'en'][ctx.message.text.substring(1)],
+                {
+                    parse_mode :'HTML',
+                    disable_web_page_preview:true
+                }
+            );
+        }
+    )
 
     // /start in groups
     bot.command('start' + process.env.BOT_USERNAME, async (ctx)=>{
@@ -53,7 +102,7 @@ module.exports.handleCommands = function(update, tgbot){
         });
 
         //send menu for interaction
-        await ctx.reply(`Add or explore Telegram chats available in the <a href="${process.env.TGPAGELINK}">Telegram Directory</a>\n\nSubscribe to @directorygram and @threej_in`,{
+        await ctx.reply(commands[tgbot.user.LANGCODE || 'en']['start'] ,{
             parse_mode: 'HTML',
             disable_web_page_preview:true,
             reply_markup : Markup.inlineKeyboard(menu(Markup)).reply_markup
@@ -61,31 +110,17 @@ module.exports.handleCommands = function(update, tgbot){
         return true;
     })
 
-    // /faqs
-    bot.command('faqs', async (ctx)=>{
-        if(ctx.chat?.type != 'private' && ctx.message.text != '/faqs@' + ctx.botInfo.username){
-            return;
-        }
-        const {sendFaqs} = require('../messages/faq');
-        return await sendFaqs(ctx, tgbot.user.LANGCODE);
-    });
-
-    // /help in private chat
-    bot.command('help', async (ctx)=>{
-        if(ctx.chat?.type != 'private' && ctx.message.text != '/help@' + ctx.botInfo.username){
-            return;
-        }
-
-        const {help} = require('../messages/help');
-        return await ctx.reply(help[tgbot.user.LANGCODE || 'en']);
-    });
-
-    // /stats - statistics for admin
+    // statistics for admin
     bot.command('stats', async (ctx)=>{
-        console.log(tgbot.user);
         if(tgbot.user.TGID != process.env.BOT_ADMIN) return;
         const stats = await tgbot.getBotStats();
         return await ctx.reply(`New users: ${stats.newUsers}\n\nTotal: ${stats.total}`);
     })
 
+    // show error for unknown commands
+    bot.command(update.message.text, async ctx=>{
+        return await ctx.reply(commands[tgbot.user.LANGCODE || 'en']['default']);
+    })
+
+    return true;
 }

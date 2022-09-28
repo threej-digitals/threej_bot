@@ -1,5 +1,6 @@
 const { Telegraf, Markup } = require('telegraf');
 const bot = new Telegraf(process.env.BOT_TOKEN);
+const { commands } = require('../messages/commands');
 
 const CATEGORIES=["🦁 Animals & Pets","🎎 Anime","🎨 Art & Paintings","📚 Books","🏎 Cars","💼 Career","💃🏼 Celebrity","👨‍👨‍👧‍👦 Community","⛓ Cryptocurrency","👩‍❤️‍👨 Dating","🎓 Educational","🎭 Entertainment","🧐 Facts","💰 Finance","😂 Funny","🎮 Gaming","🃏 GIFs","💻 Hacking","👩‍⚕️ Health","🧛 Horror","🧠 Knowledge","🔮 Life Hacks","💅🏻 Lifestyle","😂 Memes","🎬 Movies","🌞 Motivational","🏕 Nature","📰 News","🤵🏻 Political","🙋🏼 Personal","🖼 Photography","🏋️ Productive","💻 Programming","🔗 Promotion","🌐 Proxy","🗺 Regional","🥰 Relationship","🔬 Science","🎧 Song","📱 Social","🛒 Shopping","🕉 Spiritual","🏀 Sports","🚀 Startup","🏙 Stickers","📈 Stocks","🤴 Stories","📲 Technical","📨 Telegram","💭 Thoughts","💫 Tips & tricks","✈️ Travelling","🧵 Utility","📹 Videos","🎲 Others"];
 const LANGUAGES=[{'ar' : 'اللغة العربية'},{ 'bn' : 'বাংলা'},{  'cn' : '中国人'},{'de' : 'Deutsche'},{ 'en' : 'English'},{ 'es' : 'Español'},{ 'fr' : 'Français'},{'gu' : 'ગુજરાતી'},{ 'hi' : 'हिंदी'},{ 'id' : 'Indonesian'},{ 'it' : 'Italiano'},{ 'ja' : '日本語'},{ 'kn' : 'ಕನ್ನಡ'},{ 'ko' : '한국어'},{ 'ky' : 'Кыргызча'},{ 'la' : 'Latine'},{ 'ms' : 'Melayu'},{ 'ml' : 'മലയാളം'},{ 'mr' : 'मराठी'},{ 'ne' : 'नेपाली'},{ 'nl' : 'Deutsch'},{ 'no' : 'norsk'},{ 'pa' : 'ਪੰਜਾਬੀ'},{ 'fa' : 'فارسی'},{ 'pt' : 'Português'},{ 'ru' : 'Pусский'},{ 'sa' : 'संस्कृत'},{ 'sv' : 'svenska'},{ 'ta' : 'தமிழ்'},{ 'te' : 'తెలుగు'},{ 'th' : 'ภาษาไทย'},{ 'tr' : 'Türk'},{ 'uk' : 'Український'},{ 'ur' : 'اردو'},{ 'uz' : 'O\'zbek'},{ 'vi' : 'tiếng Việt'},{ 'mt' : 'multiple'},{'' : 'Other'}];
@@ -13,36 +14,48 @@ module.exports.handleCallback = async function (ctx, tgbot){
 
             //List chat
             case '💬' === key:
-                await ctx.sendMessage('Okay send me the 🔗 link or username of a public chat...');
+                await ctx.reply(commands[tgbot.user.LANGCODE || 'en']['addNewChat']);
                 break;
             //list stickers
             case '🏞' === key:
                 // await ctx.sendMessage('Okay reply with a sticker or send me the name of sticker set following with $.\n\nFor example: $UtyaD');
-                await ctx.answerCbQuery('Feature under development.');
+                await ctx.answerCbQuery(commands[tgbot.user.LANGCODE || 'en']['addNewSticker']);
             break;
             //Advance search options
             case '🕵️‍♂️' === key:
                 await ctx.answerCbQuery('Feature under development.');
             break;
+
             //FAQ's
             case '❓' === key:
-                const {sendFaqs} = require('../messages/faq');
-                await sendFaqs(ctx, tgbot.user.LANGCODE, 'editMessageText' ,
-                    Markup.inlineKeyboard([[Markup.button.callback('◀️ Back','💠')]]).reply_markup
+                await ctx.editMessageText(
+                    commands[tgbot.user.LANGCODE || 'en']['faqs'],
+                    {
+                        parse_mode :'HTML',
+                        disable_web_page_preview:true,
+                        reply_markup : Markup.inlineKeyboard(
+                            [
+                                [
+                                    Markup.button.callback('◀️ Back','💠')
+                                ]
+                            ]
+                        ).reply_markup
+                    }
                 );
-                break;
+            break;
+
             //Cancel previous actions & show Main menu
             case '💠' === key:9
                 const {menu} = require('../keyboards/primaryMenu');
                 try {
-                    await ctx.editMessageText(`List or explore Telegram chats available in the <a href="https://threej.in/">Telegram Directory</a>\n\nSubscribe to @directorygram and @threej_in`,{
+                    await ctx.editMessageText(commands[tgbot.user.LANGCODE || 'en']['start'],{
                         parse_mode: 'HTML',
                         disable_web_page_preview:true,
                         reply_markup : Markup.inlineKeyboard(menu(Markup, tgbot.user.TUID)).reply_markup
                     });
                 } catch (error) {
                     await ctx.deleteMessage();
-                    await ctx.reply(`List or explore Telegram chats available in the <a href="https://threej.in/">Telegram Directory</a>\n\nSubscribe to @directorygram and @threej_in`,{
+                    await ctx.reply(commands[tgbot.user.LANGCODE || 'en']['start'],{
                         parse_mode: 'HTML',
                         disable_web_page_preview:true,
                         reply_markup : Markup.inlineKeyboard(menu(Markup, tgbot.user.TUID)).reply_markup
@@ -228,7 +241,7 @@ module.exports.handleCallback = async function (ctx, tgbot){
 
                 sharingLink = `${process.env.TGPAGELINK}?tgcontentid=${cbData.cid}&username=${(chatDetails['USERNAME'] || '')}`;
                 await tgbot.postLinkToReddit(
-                    `${chatDetails.TITLE} | ${CATEGORIES[chatDetails.CATEGORY]}`,
+                    `${chatDetails.TITLE} · 👥 ${chatDetails.SUBSCOUNT || ''} · ${CATEGORIES[chatDetails.CATEGORY]}`,
                     sharingLink
                 );
             break;
