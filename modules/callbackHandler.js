@@ -7,6 +7,7 @@ const LANGUAGES=[{'ar' : 'اللغة العربية'},{ 'bn' : 'বাংলা'
 
 module.exports.handleCallback = async function (ctx, tgbot){
     const key = ctx.callbackQuery.data || '';
+    const LANGCODE = tgbot.user.LANGCODE || 'en';
 
     try {
         switch (true) {
@@ -14,22 +15,33 @@ module.exports.handleCallback = async function (ctx, tgbot){
 
             //List chat
             case '💬' === key:
-                await ctx.reply(commands[tgbot.user.LANGCODE || 'en']['addNewChat']);
+                await ctx.reply(commands[LANGCODE]['addNewChat']);
                 break;
             //list stickers
             case '🏞' === key:
                 // await ctx.sendMessage('Okay reply with a sticker or send me the name of sticker set following with $.\n\nFor example: $UtyaD');
-                await ctx.answerCbQuery(commands[tgbot.user.LANGCODE || 'en']['addNewSticker']);
+                await ctx.answerCbQuery(commands[LANGCODE]['addNewSticker']);
             break;
             //Advance search options
             case '🕵️‍♂️' === key:
-                await ctx.answerCbQuery('Feature under development.');
+                await ctx.editMessageReplyMarkup(Markup.inlineKeyboard(
+                    [
+                        [
+                            Markup.button.switchToCurrentChat("📢 Search channels","c "),
+                            Markup.button.switchToCurrentChat("👥 Search groups","g ")
+                        ],
+                        [
+                            Markup.button.switchToCurrentChat("🤖 Search bots","b "),
+                            Markup.button.callback('◀️ Back','💠')
+                        ]
+                    ]
+                ).reply_markup);
             break;
 
             //FAQ's
             case '❓' === key:
                 await ctx.editMessageText(
-                    commands[tgbot.user.LANGCODE || 'en']['faqs'],
+                    commands[LANGCODE]['faqs'],
                     {
                         parse_mode :'HTML',
                         disable_web_page_preview:true,
@@ -48,14 +60,14 @@ module.exports.handleCallback = async function (ctx, tgbot){
             case '💠' === key:9
                 const {menu} = require('../keyboards/primaryMenu');
                 try {
-                    await ctx.editMessageText(commands[tgbot.user.LANGCODE || 'en']['start'],{
+                    await ctx.editMessageText(commands[LANGCODE]['start'],{
                         parse_mode: 'HTML',
                         disable_web_page_preview:true,
                         reply_markup : Markup.inlineKeyboard(menu(Markup, tgbot.user.TUID)).reply_markup
                     });
                 } catch (error) {
                     await ctx.deleteMessage();
-                    await ctx.reply(commands[tgbot.user.LANGCODE || 'en']['start'],{
+                    await ctx.reply(commands[LANGCODE]['start'],{
                         parse_mode: 'HTML',
                         disable_web_page_preview:true,
                         reply_markup : Markup.inlineKeyboard(menu(Markup, tgbot.user.TUID)).reply_markup
@@ -70,7 +82,7 @@ module.exports.handleCallback = async function (ctx, tgbot){
                 const {category} = require('../keyboards/category');
                 const cid = JSON.parse(key.substr(15)).cid;
 
-                await ctx.answerCbQuery('Choose category for this chat.');
+                await ctx.answerCbQuery(commands[LANGCODE]['chooseCategory']);
                 await ctx.editMessageReplyMarkup(Markup.inlineKeyboard(category(cid, Markup, CATEGORIES)).reply_markup);
                 break;
 
@@ -80,10 +92,10 @@ module.exports.handleCallback = async function (ctx, tgbot){
                 var cbData = JSON.parse(key.substr(15));
                 var response = await tgbot.updateChat(cbData.cid, cbData.cat);
                 if(response){
-                    await ctx.answerCbQuery('Choose language for this chat.');
+                    await ctx.answerCbQuery(commands[LANGCODE]['chooseLanguage']);
                     ctx.editMessageReplyMarkup(Markup.inlineKeyboard(language(cbData.cid, Markup, LANGUAGES)).reply_markup);
                 }else{
-                    ctx.sendMessage('Internal error occurred!');
+                    ctx.sendMessage(commands[LANGCODE]['internalError']);
                 }
                 break;
 
@@ -111,13 +123,13 @@ module.exports.handleCallback = async function (ctx, tgbot){
                     //remove langauge keyboard
                     ctx.editMessageReplyMarkup(Markup.inlineKeyboard([[]]).reply_markup);
 
-                    // Do not send confirmation message to moderators
+                    // Do not send confirmation message if chat listed by moderators
                     if(ctx.callbackQuery.from.id == process.env.BOT_ADMIN) return true;
 
                     // Confirmation message reply with sticker & text
                     await ctx.sendSticker(stickers.celebration[tgbot.randomInt(stickers.celebration.length-1)]);
                     message = `<b>Chat listed successfully!</b>\nSharing link: ${sharingLink}\n\n<code><i>Disclaimer:\nChat is sent for moderation and can be removed if any discrepancies found.</i></code>`;
-                    await ctx.sendMessage(message, {
+                    return await ctx.sendMessage(message, {
                         parse_mode:'HTML',
                         reply_markup: Markup.inlineKeyboard([
                             [Markup.button.switchToChat('⭐️ Ask subsribers to rate this chat',`cid#${cbData.cid}`)],
@@ -125,7 +137,6 @@ module.exports.handleCallback = async function (ctx, tgbot){
                             [Markup.button.callback('🗑 Remove this chat from Telegram Directory', `unlist#{"cid":${chatDetails.CID}}`)]
                         ]).reply_markup
                     });
-                    return true;
                 }
                 throw new Error(response);
             break;
@@ -228,7 +239,7 @@ module.exports.handleCallback = async function (ctx, tgbot){
             //promotion confirmation to user
             case /^📣✅#{.*}$/.test(key):
                 var cbData = JSON.parse(key.substr(4));
-                await bot.telegram.sendMessage(cbData.uid,`✅ Your promotion request has been accepted.`);
+                await bot.telegram.sendMessage(cbData.uid, commands[LANGCODE]['promotionAccepted']);
             break;
 
             //post to reddit
@@ -248,7 +259,7 @@ module.exports.handleCallback = async function (ctx, tgbot){
 
             default:
                 tgbot.logError(ctx.callbackQuery);
-                await ctx.reply('Unkown error occurred!');
+                await ctx.reply(commands[LANGCODE]['unknownError']);
             break;
         }
     } catch (error) {

@@ -95,7 +95,19 @@ module.exports.handleInlineQueries = async function (ctx, bot, tgbot, Markup){
         //Handle simple queries
         case true:
             try {
-                const chats = await tgbot.searchChatsInDB(query);
+                const chatTypes = {
+                    "c":"channel",
+                    "g":"group",
+                    "b":"bot"
+                }
+                var qry = query;
+                if(match = query.match(/^([a-z]) (.*)/)){
+                    var chatType = chatTypes[match[1]] || '';
+                    qry = match[2];
+                }
+                console.log(qry, chatType);
+                const chats = await tgbot.searchChatsInDB(qry, chatType);
+
                 var result = [];
                 chats.forEach(chat => {
                     //strip html tags

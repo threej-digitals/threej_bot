@@ -4,6 +4,8 @@ module.exports.commands = {
         "addNewGroup" : "Okay send me the 🔗 link or username of a public group chat...",
         "addNewBot" : "Okay send me the 🔗 link or username of Bot...",
         "addNewSticker" : "Feature under development.",
+        "chooseCategory" : "Choose category for this chat.",
+        "chooseLanguage" : "Choose language for this chat.",
         "default" : "Unknown command. Send /help to see the list of available commands",
         "faqs" : `<b>Frequently Asked Questions</b>
 
@@ -16,7 +18,7 @@ And from 25th sept 2022, we are only promoting chats with atleast 5 community vo
 Q: In which platform chats will be promoted to?
 
 <code>A: Eligible chats will be promoted to following places:</code>
-<a href="https://t.me/directorygram">Telegram</a> · <a href="https://telegram.quora.com/">Quora</a> · <a href="https://www.reddit.com/r/Telegram_Directory/">Reddit</a> · <a href="https://www.facebook.com/3jdotin">Facebook</a> · <a href="https://twitter.com/threej_in">Twitter</a>`,
+<a href="https://t.me/directorygram">Telegram</a> · <a href="https://telegram.quora.com/">Quora</a> · <a href="https://www.reddit.com/r/Telegram_Directory/">Reddit</a> · <a href="https://www.facebook.com/telegramdirectory">Facebook</a> · <a href="https://twitter.com/threej_in">Twitter</a>`,
         
         "help" : `I will help you to promote your chats & stickers for free.
 
@@ -33,6 +35,9 @@ Q: In which platform chats will be promoted to?
 /addNewSticker - Add new sticker
 
 <b>Support chat: @threej_discuss</b>`,
-        "start" : `Add or explore Telegram chats available in the <a href="${process.env.TGPAGELINK}">Telegram Directory</a>\n\nSubscribe to @directorygram and @threej_in`
+        "internalError" : "Internal error occurred!",
+        "promotionAccepted" : "✅ Your promotion request has been accepted.",
+        "start" : `Add or explore Telegram chats available in the <a href="${process.env.TGPAGELINK}">Telegram Directory</a>\n\nSubscribe to @directorygram and @threej_in`,
+        "UnknownError" : "Unkown error occurred!"
     }
 }
