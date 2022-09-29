@@ -323,14 +323,14 @@ class Tgbot extends Threej{
      * @param {string} query 
      * @returns {object}
      */
-    async searchChatsInDB(query, chatType){
+    async searchChatsInDB(query, chatType = '.*'){
         if(typeof query != 'string') throw new Error('Query is invalid');
         return await this.query(
             'SELECT * FROM ?? WHERE TITLE LIKE ? AND CTYPE REGEXP(?) ORDER BY SUBSCOUNT DESC LIMIT 50',
             [
                 process.env.CHATSTABLE,
                 `%${query}%`,
-                chatType.toLowerCase() || '.*'
+                chatType.toLowerCase()
             ]
         );
     }

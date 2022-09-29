@@ -207,8 +207,6 @@ module.exports.handleCallback = async function (ctx, tgbot){
             break;
 
             case /^🚫#{.*}$/.test(key):
-                var cbData = JSON.parse(key.substr(3));
-                await ctx.answerCbQuery('Feature under development!');
             break;
 
             //Promotion
@@ -220,9 +218,9 @@ module.exports.handleCallback = async function (ctx, tgbot){
                 if(chatDetails.LISTERID != tgbot.user.TUID) return;
 
                 if(chatDetails.UPVOTES + chatDetails.DOWNVOTES < 5){
-                    return await ctx.answerCbQuery('❌ Chat is not eligible. See /faqs for more details.');
+                    return await ctx.answerCbQuery('❌ Chat is not eligible. See /faqs for more details.',{show_alert:true});
                 }
-                await ctx.answerCbQuery('✅ Promotion request sent to moderators.');
+                await ctx.answerCbQuery('✅ Promotion request sent to moderators.',{show_alert:true});
                 await bot.telegram.sendMessage(process.env.BOT_ADMIN, `New promotion request for chat ${chatDetails.TITLE}[@${chatDetails.USERNAME}][${chatDetails.LINK}]`,{
                     reply_markup: Markup.inlineKeyboard([
                         [

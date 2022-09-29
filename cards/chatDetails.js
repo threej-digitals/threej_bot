@@ -37,7 +37,7 @@ module.exports.chatDetailsCard = function (chatDetails, Markup, tgbot) {
     }
     keyboardArray.push(Markup.button.url('💬 Similar chats', `${process.env.TGPAGELINK}?tgcontentid=${chatDetails.CID}&username=${(chatDetails.USERNAME || '').replace('@','')}`));
     keyboardArray.push(Markup.button.switchToChat('↗️ Share', `cid#${chatDetails.CID}`));
-    keyboardArray.push(Markup.button.callback('🚫 Report', `🚫#${chatDetails.CID}`));
+    keyboardArray.push(Markup.button.callback('🚫 Report', `🚫#{"cid":${chatDetails.CID}}`));
     keyboardArray.push(Markup.button.callback('❌ Cancel', '💠'));
 
     //keyboard for new chats only visible to lister

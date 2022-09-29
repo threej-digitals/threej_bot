@@ -8,6 +8,8 @@ const tgbot = new Tgbot();
 
 bot.use(async (ctx, next)=>{
     try {
+        console.log(ctx);
+        ctx.sendPoll("Report @ruton",['scam','spam','hate'])
         // fs.appendFileSync('./t.json',"\n\n\n\n" + JSON.stringify(ctx));
         //Decide when to respond
         if(
@@ -158,7 +160,8 @@ bot.launch({
             'message',
             'chat_member',
             'chat_join_request',
-            'my_chat_member'
+            'my_chat_member',
+            'poll'
         ]
     }
 });
