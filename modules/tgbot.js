@@ -35,7 +35,7 @@ const CHATACTION = {
 /**
  * Flags for reporting contents
  */
-const CHATFLAG = ['SFW','Copyright','NSFW','Spam','Scam','Illegal Activities','Violence','Child Abuse'];
+const CHATFLAG = ['SFW','Copyright','NSFW','Spam','Scam','Illegal Activities','Violence','Child Abuse','Chat is Dead'];
 
 class Tgbot extends Threej{
     constructor(){
@@ -340,18 +340,21 @@ class Tgbot extends Threej{
      * @param {object} values 
      * @returns 
      */
-    async updateChat(chatId, category = null, language = null, status = null){
+    async updateChat(chatId, options = {}){
+        const chatDetails = this.getChatFromDB()
         const values = [
             process.env.CHATSTABLE,
-            category,
-            language,
-            CHATSTATUS[status] || null,
+            options.category || null,
+            options.language || null,
+            CHATSTATUS[options.status] || null,
+            options.report || 0,
             chatId
         ];
         const sql = `UPDATE ?? SET 
             CATEGORY = COALESCE(?, CATEGORY), 
             CLANGUAGE = COALESCE(?, CLANGUAGE), 
-            STATUS = COALESCE(?, STATUS) 
+            STATUS = COALESCE(?, STATUS),
+            REPORT = ? 
             WHERE CID = ?`;
         try {
             return await this.query(sql, values);

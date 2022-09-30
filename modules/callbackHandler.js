@@ -64,14 +64,14 @@ module.exports.handleCallback = async function (ctx, tgbot){
                     await ctx.editMessageText(commands[LANGCODE]['start'],{
                         parse_mode: 'HTML',
                         disable_web_page_preview:true,
-                        reply_markup : Markup.inlineKeyboard(menu(Markup, tgbot.user.TUID)).reply_markup
+                        reply_markup : Markup.inlineKeyboard(menu(Markup)).reply_markup
                     });
                 } catch (error) {
                     await ctx.deleteMessage();
                     await ctx.reply(commands[LANGCODE]['start'],{
                         parse_mode: 'HTML',
                         disable_web_page_preview:true,
-                        reply_markup : Markup.inlineKeyboard(menu(Markup, tgbot.user.TUID)).reply_markup
+                        reply_markup : Markup.inlineKeyboard(menu(Markup)).reply_markup
                     });
                 }
                 break;
@@ -82,6 +82,10 @@ module.exports.handleCallback = async function (ctx, tgbot){
             case /^chooseCategory#{.*}$/.test(key):
                 const {category} = require('../keyboards/category');
                 const cid = JSON.parse(key.substr(15)).cid;
+                var chatDetails = await tgbot.getChatFromDB(cid);
+                
+                // return if not lister
+                if(chatDetails.LISTERID != tgbot.user.TGID) return;
 
                 await ctx.answerCbQuery(commands[LANGCODE]['chooseCategory']);
                 await ctx.editMessageReplyMarkup(Markup.inlineKeyboard(category(cid, Markup, CATEGORIES)).reply_markup);
@@ -91,7 +95,7 @@ module.exports.handleCallback = async function (ctx, tgbot){
             case /^updateCategory#{.*}$/.test(key):
                 const {language} = require('../keyboards/language');
                 var cbData = JSON.parse(key.substr(15));
-                var response = await tgbot.updateChat(cbData.cid, cbData.cat);
+                var response = await tgbot.updateChat(cbData.cid, {category:cbData.cat});
                 if(response){
                     await ctx.answerCbQuery(commands[LANGCODE]['chooseLanguage']);
                     ctx.editMessageReplyMarkup(Markup.inlineKeyboard(language(cbData.cid, Markup, LANGUAGES)).reply_markup);
@@ -104,7 +108,7 @@ module.exports.handleCallback = async function (ctx, tgbot){
             case /^updateLanguage#{.*}$/.test(key):
                 const {stickers} = require('../messages/sticker');
                 var cbData = JSON.parse(key.substr(15));
-                var response = await tgbot.updateChat(cbData.cid, null, cbData.lang, 'listed');
+                var response = await tgbot.updateChat(cbData.cid, {language: cbData.lang, status: 'listed'});
                 if(response){
                     var sharingLink='';
                     const chatDetails = await tgbot.getChatFromDB(cbData.cid);
@@ -145,7 +149,7 @@ module.exports.handleCallback = async function (ctx, tgbot){
             //Remove/Unlist the chat
             case /^unlist#{.*}$/.test(key):
                 var cbData = JSON.parse(key.substr(7));
-                await tgbot.updateChat(cbData.cid, null, null, 'unlisted');
+                await tgbot.updateChat(cbData.cid, {status:'unlisted'});
                 await ctx.answerCbQuery('Chat removed from Telegram directory.');
                 ctx.editMessageReplyMarkup(Markup.inlineKeyboard([[]]).reply_markup);
             break
@@ -198,6 +202,7 @@ module.exports.handleCallback = async function (ctx, tgbot){
             case /^🔞#{.*}$/.test(key):
                 var cbData = JSON.parse(key.substr(3));
 
+                if(tgbot.user.TGID != process.env.BOT_ADMIN) return;
                 //update flag
                 await tgbot.updateChatFlag(cbData.cid, 'NSFW');
 
@@ -209,7 +214,7 @@ module.exports.handleCallback = async function (ctx, tgbot){
 
             case /^🚫#{.*}$/.test(key):
                 // return if not private chat
-                if(ctx?.chat?.type != 'private') return;
+                if(ctx.chat?.type != 'private') return;
 
                 var cbData = JSON.parse(key.substr(3));
                 var chatDetails = await tgbot.getChatFromDB(cbData?.cid);
@@ -223,7 +228,7 @@ module.exports.handleCallback = async function (ctx, tgbot){
                 var chatDetails = await tgbot.getChatFromDB(cbData.cid);
 
                 // Only lister can request for promotion
-                if(chatDetails.LISTERID != tgbot.user.TUID) return;
+                if(chatDetails.LISTERID != tgbot.user.TGID) return;
 
                 if(chatDetails.UPVOTES + chatDetails.DOWNVOTES < 5){
                     return await ctx.answerCbQuery('❌ Chat is not eligible. See /faqs for more details.',{show_alert:true});

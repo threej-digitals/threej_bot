@@ -1,6 +1,6 @@
 require('dotenv').config();
 const { Telegraf, Markup, Context} = require('telegraf');
-const {Tgbot} = require('./modules/tgbot');
+const {Tgbot, CHATFLAG} = require('./modules/tgbot');
 const fs = require('fs');
 
 const bot = new Telegraf(process.env.BOT_TOKEN);
@@ -14,12 +14,12 @@ bot.on('poll', async (ctx) => {
         var flag = 0;
         for (const key in options) {
             if(options[key].voter_count > max){
-                flag = key + 1;
+                flag = key++;
                 max = options[key].voter_count;
             }
         }
         if(flag > 0){
-            return await tgbot.updateChatFlag(match[1], flag);
+            return await tgbot.updateChatFlag(match[1], CHATFLAG[flag]);
         }
     }
 })
@@ -195,7 +195,8 @@ bot.launch({
             'message',
             'chat_member',
             'chat_join_request',
-            'my_chat_member'
+            'my_chat_member',
+            'poll'
         ]
     }
 })

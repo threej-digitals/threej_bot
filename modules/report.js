@@ -1,6 +1,8 @@
 const { Telegraf } = require('telegraf');
+const { CHATFLAG, Tgbot } = require('../modules/tgbot');
+
 const bot = new Telegraf(process.env.BOT_TOKEN);
-const { CHATFLAG } = require('../modules/tgbot');
+const tgbot = new Tgbot();
 
 /**
  * Forwards poll to report a chat
@@ -8,23 +10,28 @@ const { CHATFLAG } = require('../modules/tgbot');
  * @param {integer} userId user chat id where poll will be forwarded
  */
 module.exports.reportChat = async (chatDetails, userId) => {
-    if(chatDetails.REPORT > 0){
-        await bot.telegram.forwardMessage(
-            userId,
-            process.env.MODSCHATID,
-            chatDetails.REPORT
-        );
-    }else{
-        var [i, ...flags] = CHATFLAG;
-        const result = await bot.telegram.sendPoll(
-            process.env.MODSCHATID,
-            `#${chatDetails.CID} Report ${chatDetails.USERNAME || chatDetails.TITLE}`,
-            flags
-        );
-        await bot.telegram.forwardMessage(
-            userId,
-            process.env.MODSCHATID,
-            result.message_id
-        );
+    try {
+        if(chatDetails.REPORT > 0){
+            await bot.telegram.forwardMessage(
+                userId,
+                process.env.MODSCHATID,
+                chatDetails.REPORT
+            );
+        }else{
+            var [i, ...flags] = CHATFLAG;
+            const result = await bot.telegram.sendPoll(
+                process.env.MODSCHATID,
+                `#${chatDetails.CID} Report ${chatDetails.USERNAME || chatDetails.TITLE}`,
+                flags
+            );
+            await tgbot.updateChat(chatDetails.CID, {report: result.message_id});
+            await bot.telegram.forwardMessage(
+                userId,
+                process.env.MODSCHATID,
+                result.message_id
+            );
+        }
+    } catch (error) {
+        return tgbot.logError(error);
     }
 }
