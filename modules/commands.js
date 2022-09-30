@@ -1,6 +1,7 @@
 const { Telegraf, Markup } = require('telegraf');
 const bot = new Telegraf(process.env.BOT_TOKEN);
 const { commands } = require('../messages/commands');
+const { reportChat } = require('./report');
 const botUsername = process.env.BOT_USERNAME;
 
 module.exports.handleCommands = function(update, tgbot){
@@ -82,6 +83,13 @@ module.exports.handleCommands = function(update, tgbot){
                 });
                 if(payload['cid']){
                     const chatDetails = await tgbot.getChatFromDB(payload['cid']);
+
+                    // send poll to report a chat
+                    if(payload['report']){
+                        return await reportChat(chatDetails, ctx.from.id);
+                    }
+
+                    //send chat details
                     const {chatDetailsCard} = require('../cards/chatDetails');
                     const {text, markup} = chatDetailsCard(chatDetails, Markup, tgbot);
                     return await ctx.reply(text,{

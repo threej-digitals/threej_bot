@@ -6,10 +6,26 @@ const fs = require('fs');
 const bot = new Telegraf(process.env.BOT_TOKEN);
 const tgbot = new Tgbot();
 
+bot.on('poll', async (ctx) => {
+    const match = ctx.poll.question.match(/^#(\d+) .*$/);
+    const options = ctx.poll.options;
+    if(match && options){
+        var max = 0;
+        var flag = 0;
+        for (const key in options) {
+            if(options[key].voter_count > max){
+                flag = key + 1;
+                max = options[key].voter_count;
+            }
+        }
+        if(flag > 0){
+            return await tgbot.updateChatFlag(match[1], flag);
+        }
+    }
+})
+
 bot.use(async (ctx, next)=>{
     try {
-        console.log(ctx);
-        ctx.sendPoll("Report @ruton",['scam','spam','hate'])
         // fs.appendFileSync('./t.json',"\n\n\n\n" + JSON.stringify(ctx));
         //Decide when to respond
         if(

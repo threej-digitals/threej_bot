@@ -33,9 +33,9 @@ const CHATACTION = {
 }
 
 /**
- * Extras for reporting contents
+ * Flags for reporting contents
  */
-const CHATFLAG = ['SFW','NSFW','Spam','Scam','Violence','Child Abuse','Copyright','Illegal'];
+const CHATFLAG = ['SFW','Copyright','NSFW','Spam','Scam','Illegal Activities','Violence','Child Abuse'];
 
 class Tgbot extends Threej{
     constructor(){
@@ -383,4 +383,4 @@ class Tgbot extends Threej{
         }
     }
 }
-module.exports = { Tgbot, CHATSTATUS, MEMBERSTATUS};
+module.exports = { Tgbot, CHATSTATUS, MEMBERSTATUS, CHATFLAG};

@@ -43,7 +43,7 @@ module.exports.handleInlineQueries = async function (ctx, bot, tgbot, Markup){
                             ],
                             [
                                 Markup.button.url('👤 Subscribe', chat.LINK || 'https://telegram.me/' + chat.USERNAME),
-                                Markup.button.callback('🚫 Report', '🚫')
+                                Markup.button.url('🚫 Report', `https://t.me/${process.env.BOTUSERNAME.substring(1)}?start=${Buffer.from('cid='+chat.CID+'&report=true').toString('base64')}`)
                             ]
                         ]).reply_markup,
                         parse_mode: 'HTML',
@@ -79,7 +79,7 @@ module.exports.handleInlineQueries = async function (ctx, bot, tgbot, Markup){
                             ],
                             [
                                 Markup.button.url('👤 Subscribe', chatDetails.LINK || 'https://telegram.me/' + chatDetails.USERNAME),
-                                Markup.button.callback('🚫 Report', '🚫')
+                                Markup.button.url('🚫 Report', `https://t.me/${process.env.BOTUSERNAME.substring(1)}?start=${Buffer.from('cid='+chatDetails.CID+'&report=true').toString('base64')}`)
                             ]
                         ]).reply_markup,
                         parse_mode: 'HTML',
@@ -105,7 +105,6 @@ module.exports.handleInlineQueries = async function (ctx, bot, tgbot, Markup){
                     var chatType = chatTypes[match[1]] || '';
                     qry = match[2];
                 }
-                console.log(qry, chatType);
                 const chats = await tgbot.searchChatsInDB(qry, chatType);
 
                 var result = [];
@@ -131,7 +130,7 @@ module.exports.handleInlineQueries = async function (ctx, bot, tgbot, Markup){
                             ],
                             [
                                 Markup.button.url('👤 Subscribe', chat.LINK || 'https://telegram.me/' + chat.USERNAME),
-                                Markup.button.callback('🚫 Report', '🚫')
+                                Markup.button.url('🚫 Report', `https://t.me/${process.env.BOTUSERNAME.substring(1)}?start=${Buffer.from('cid='+chat.CID+'&report=true').toString('base64')}`)
                             ]
                         ]).reply_markup,
                         thumb_url: process.env.HOMEURI + chat.PHOTO || '',
