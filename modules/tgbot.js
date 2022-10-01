@@ -263,34 +263,32 @@ class Tgbot extends Threej{
      * @param {BigInteger} listerId
      * @returns {boolean}
      */
-    async newChat(chatDetails, listerId){
+    async newChat(chatDetails, listerRole = 0){
 
         // lister is a person who list the chat to telegram directory
         chatDetails['listerId'] = this.user.TUID;
-        chatDetails['listerRole'] = MEMBERSTATUS['member'];
+        chatDetails['listerRole'] = MEMBERSTATUS[listerRole || 'member'];
 
         chatDetails['status'] = CHATSTATUS['new'];
         return await this.insertChat(chatDetails);
     }
 
     async postLinkToReddit(title, link){
-        // console.log(process.env);return
-        var data = qs.stringify({
-            'grant_type': 'password',
-            'username': process.env.REDDIT_USERNAME,
-            'password': process.env.REDDIT_PASSWORD
-        });
-        var config = {
-            method: 'post',
-            url: 'https://www.reddit.com/api/v1/access_token',
-            headers: { 
-              'Authorization': 'Basic ' + process.env.REDDIT_SECRET,
-              'Content-Type': 'application/x-www-form-urlencoded'
-            },
-            data : data
-        };
-        
         try {
+            var data = qs.stringify({
+                'grant_type': 'password',
+                'username': process.env.REDDIT_USERNAME,
+                'password': process.env.REDDIT_PASSWORD
+            });
+            var config = {
+                method: 'post',
+                url: 'https://www.reddit.com/api/v1/access_token',
+                headers: { 
+                'Authorization': 'Basic ' + process.env.REDDIT_SECRET,
+                'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                data : data
+            };
             var response = await axios(config)
             if(typeof response.data.access_token == 'undefined') return;
 
@@ -298,7 +296,8 @@ class Tgbot extends Threej{
                 'title': title,
                 'kind': 'link',
                 'url': link,
-                'sr': 'Telegram_Directory' 
+                'sr': 'Telegram_Directory',
+                'resubmit': true
             });
             config = {
                 method: 'post',
@@ -310,12 +309,13 @@ class Tgbot extends Threej{
                 data : data
             };
             
-            return await axios(config);
+            response = await axios(config);
+            if(response?.data?.success == false){
+                this.logError(JSON.stringify(response.data.query));
+            }
         } catch (error) {
-            console.log(error);
-            this.logError(error.data);
+            this.logError(error);
         }
-        
     }
 
     /**

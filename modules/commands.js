@@ -1,18 +1,17 @@
 const { Telegraf, Markup } = require('telegraf');
 const bot = new Telegraf(process.env.BOT_TOKEN);
-const { commands } = require('../messages/commands');
 const { reportChat } = require('./report');
 const botUsername = process.env.BOT_USERNAME;
 
 module.exports.handleCommands = function(update, tgbot){
+    const commands = require('../messages/commands').commands(tgbot.user.LANGCODE || 'en');
     bot.handleUpdate(update);
 
     // List of commands to reply for in groups
     bot.command(
         [
             'faqs' + botUsername,
-            'help' + botUsername,
-            'start' + botUsername
+            'help' + botUsername
         ],
         async ctx => {
             // return if not group chat
@@ -20,7 +19,7 @@ module.exports.handleCommands = function(update, tgbot){
 
             // reply with corresponding message
             return await ctx.reply(
-                commands[tgbot.user.LANGCODE || 'en'][ctx.message.text.substring(1, ctx.message.text.length - botUsername.length)],
+                commands[ctx.message.text.substring(1, ctx.message.text.length - botUsername.length)],
                 {
                     parse_mode :'HTML',
                     disable_web_page_preview:true
@@ -45,7 +44,7 @@ module.exports.handleCommands = function(update, tgbot){
             
             // reply with corresponding message
             return await ctx.reply(
-                commands[tgbot.user.LANGCODE || 'en'][ctx.message.text.substring(1)],
+                commands[ctx.message.text.substring(1)],
                 {
                     parse_mode :'HTML',
                     disable_web_page_preview:true
@@ -110,7 +109,7 @@ module.exports.handleCommands = function(update, tgbot){
         });
 
         //send menu for interaction
-        await ctx.reply(commands[tgbot.user.LANGCODE || 'en']['start'] ,{
+        await ctx.reply(commands['start'] ,{
             parse_mode: 'HTML',
             disable_web_page_preview:true,
             reply_markup : Markup.inlineKeyboard(menu(Markup)).reply_markup
@@ -127,7 +126,7 @@ module.exports.handleCommands = function(update, tgbot){
 
     // show error for unknown commands
     bot.command(update.message.text, async ctx=>{
-        return await ctx.reply(commands[tgbot.user.LANGCODE || 'en']['default']);
+        return await ctx.reply(commands['default']);
     })
 
     return true;

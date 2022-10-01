@@ -1,10 +1,32 @@
 require('dotenv').config();
 const { Telegraf, Markup, Context} = require('telegraf');
-const {Tgbot, CHATFLAG} = require('./modules/tgbot');
+const { Tgbot, CHATFLAG } = require('./modules/tgbot');
+const { updateAndGetChat } = require('./modules/newChat');
+const { chatDetailsCard } = require('./cards/chatDetails');
 const fs = require('fs');
 
 const bot = new Telegraf(process.env.BOT_TOKEN);
 const tgbot = new Tgbot();
+
+
+async function sendFormattedChatDetails(ctx, chatDetails){
+    //---- Get chat details card -----//
+    const {text, markup} = chatDetailsCard(chatDetails, Markup, tgbot);
+
+    //----reply---//
+    if(!chatDetails.PHOTO){
+        await ctx.reply(text,{
+            parse_mode: 'HTML',
+            reply_markup: Markup.inlineKeyboard(markup).reply_markup
+        });
+    }else{
+        await ctx.replyWithPhoto(process.env.HOMEURI + chatDetails.PHOTO, {
+            caption: text,
+            parse_mode: 'HTML',
+            reply_markup: Markup.inlineKeyboard(markup).reply_markup
+        });
+    }
+}
 
 bot.on('poll', async (ctx) => {
     const match = ctx.poll.question.match(/^#(\d+) .*$/);
@@ -26,16 +48,18 @@ bot.on('poll', async (ctx) => {
 
 bot.use(async (ctx, next)=>{
     try {
+        // console.log( JSON.stringify(ctx) );
         // fs.appendFileSync('./t.json',"\n\n\n\n" + JSON.stringify(ctx));
         //Decide when to respond
         if(
             typeof ctx.from == 'undefined' &&
-            typeof ctx.callbackQuery == 'undefined'
+            typeof ctx.callbackQuery == 'undefined' &&
+            typeof ctx.myChatMember == 'undefined'
         ){
             return true;
         }
         // Log user details to DB when bot is started by new user.
-        if(!(await tgbot.logUser(ctx.from || ctx.callbackQuery.from))) return;
+        if(!(await tgbot.logUser(ctx.from || ctx.callbackQuery.from || ctx.myChatMember.from))) return;
 
         // Handle bot commands
         if(ctx?.message?.entities && ctx.message.entities[0].type == 'bot_command'){
@@ -46,6 +70,23 @@ bot.use(async (ctx, next)=>{
     } catch (error) {
         tgbot.logError(error);
     }
+})
+
+bot.on('my_chat_member', async (ctx) => {
+    const chatMember = await bot.telegram.getChatMember(ctx.myChatMember.chat.id, ctx.myChatMember.from.id)
+    var chatDetails = {};
+    if(typeof ctx.myChatMember.chat.username == 'string'){
+        chatDetails = await updateAndGetChat(ctx.myChatMember.chat.username, tgbot, chatMember.status);
+    }else{
+        chatDetails = await updateAndGetChat(ctx.myChatMember.chat.username, tgbot, chatMember.status);
+    }
+
+    if(typeof chatDetails == 'string'){
+        return tgbot.logError(chatDetails);
+    }
+    
+    return await sendFormattedChatDetails(ctx, chatDetails);
+
 })
 
 bot.on('callback_query',(ctx)=>{
@@ -80,76 +121,12 @@ bot.on('text', async (ctx)=>{
         //----- If username found then user is requesting for a chat ----//
         if(username){
 
-            var chatDetails = await tgbot.getChatFromDB(username);
-
-            //---- Process new chat ----//
-            if(!chatDetails || chatDetails.length == 0){
-                //-----Scrap chat details from telegram website----------//
-                const scrapper = require('./modules/scrapper');
-                chatDetails = await scrapper.scrapChat(username);
-                if(typeof chatDetails['photo'] == 'string' && chatDetails['photo'].length > 10){
-                    chatDetails['photo'] = await tgbot.saveRemoteFile(chatDetails['photo'], process.env.ABS_HOMEPATH + process.env.ASSETS_FOLDER,'chat'+(chatDetails['id'] || chatDetails['username'])) || '';
-                }
-
-                //-----If unable to scrap chat details request it from telegram api-----//
-                if(!chatDetails){
-                    try {
-                        const result = await bot.telegram.getChat('@'+username);
-
-                        chatDetails = tgbot.chatDetails;
-                        chatDetails['id'] = result.id;
-                        chatDetails['title'] = result.title;
-                        chatDetails['description'] = result.description;
-                        chatDetails['username'] = result.username || '';
-                        chatDetails['type'] = result.type || '';
-
-                        chatDetails['subscribers'] = await bot.telegram.getChatMembersCount(result.id);
-
-                        const fileLink = await bot.telegram.getFileLink(result.photo.small_file_id);
-                        // Download profile pic and store it in server
-                        chatDetails['photo'] = await tgbot.saveRemoteFile(fileLink.href, process.env.ABS_HOMEPATH + process.env.ASSETS_FOLDER,'chat'+result.id) || '';
-                    } catch (error) {
-                        tgbot.logError(error)
-                        ctx.reply('Chat not found!');
-                        return true;
-                    }
-                }
-
-                //-----Check for eligibility-------//
-                if(chatDetails.type !== 'bot' && parseInt(chatDetails.subscribers) < 100){
-                    ctx.reply('Chat is not eligible for listing. See /FAQs');
-                    return true;
-                }
-
-                //-----Store chat details to DB------//
-                chatDetails.photo = chatDetails.photo.replace(process.env.ABS_HOMEPATH,'');
-                const response = await tgbot.newChat(chatDetails, ctx.from.id);
-                if(response && response.affectedRows){
-                    chatDetails = await tgbot.getChatFromDB(chatDetails.username);
-                }else{
-                    await ctx.reply('Failed to list your chat. Please report this issue to our support chat @threej_discuss');
-                    return true;
-                }
+            const chatDetails = await updateAndGetChat(username, tgbot);
+            if(typeof chatDetails == 'string'){
+                return await ctx.reply(chatDetails);
             }
-
-            //---- Get chat details card -----//
-            const {chatDetailsCard} = require('./cards/chatDetails');
-            const {text, markup} = chatDetailsCard(chatDetails, Markup, tgbot);
-
-            //----reply---//
-            if(!chatDetails.PHOTO){
-                return await ctx.reply(text,{
-                    parse_mode: 'HTML',
-                    reply_markup: Markup.inlineKeyboard(markup).reply_markup
-                });
-            }else{
-                await ctx.replyWithPhoto(process.env.HOMEURI + chatDetails.PHOTO, {
-                    caption: text,
-                    parse_mode: 'HTML',
-                    reply_markup: Markup.inlineKeyboard(markup).reply_markup
-                });
-            }
-            return true;
+            
+            return await sendFormattedChatDetails();
         }
 
         //-----default error message------//

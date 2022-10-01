@@ -26,15 +26,18 @@ module.exports.chatDetailsCard = function (chatDetails, Markup, tgbot) {
 
     //Keyboard for user other then lister if lister is not creator
     if(chatDetails.LISTERROLE !== MEMBERSTATUS['creator'] && tgbot.user.TUID !== chatDetails.LISTERID){
-        text += `<b><i>\n\n🛑 NOTE 🛑\nChat is already listed by other user. Click on the below button to claim ownership of this chat</i></b>`;
-        var btn = Markup.button.callback('👮 Claim ownership', `👮#{"cid":${chatDetails.CID}}`);
-        chatDetails.STATUS !== CHATSTATUS.listed ? keyboardArray = [btn] : keyboardArray.push(btn);
 
-    //keyboard for existing chats only visible to lister
-    }else if(CHATSTATUS.listed == chatDetails.STATUS && tgbot.user.TUID == chatDetails.LISTERID){
+        text += `<b><i>\n\n🛑 NOTE 🛑\nChat is already listed by other user. To claim this chat add the bot to your chat as admin by clicking on the "claim ownership" button below 👇</i></b>`;
+        var btn = Markup.button.url('👮 Claim ownership', `https://t.me/${process.env.BOT_USERNAME.substring(1)}?startgroup=claimchat`);
+        chatDetails.STATUS !== CHATSTATUS.listed ? keyboardArray = [btn] : keyboardArray.push(btn);
+    }
+
+    //keyboard for existing chats only visible to lister & bot admin
+    if(CHATSTATUS.listed == chatDetails.STATUS && (tgbot.user.TUID == chatDetails.LISTERID || tgbot.user.TGID == process.env.BOT_ADMIN)){
         keyboardArray.push(Markup.button.callback('📣 Promote', `📣#{"cid":${chatDetails.CID}}`));
         keyboardArray.push(Markup.button.callback('🗑 Remove chat', `unlist#{"cid":${chatDetails.CID}}`));
     }
+
     keyboardArray.push(Markup.button.url('💬 Similar chats', `${process.env.TGPAGELINK}?tgcontentid=${chatDetails.CID}&username=${(chatDetails.USERNAME || '').replace('@','')}`));
     keyboardArray.push(Markup.button.switchToChat('↗️ Share', `cid#${chatDetails.CID}`));
     keyboardArray.push(Markup.button.callback('🚫 Report', `🚫#{"cid":${chatDetails.CID}}`));

@@ -99,7 +99,7 @@ class Scrapper extends Threej{
             chatDetails['description'] = $('body > header > div > div.tgme_header_right_column > section > div > div.tgme_channel_info_description').html() || '';
             
             //photo
-            chatDetails['photo'] = $('body > header > div > div.tgme_header_right_column > section > div > div.tgme_channel_info_header > i > img').attr('src') || '';
+            chatDetails['photo'] = $('img').attr('src') || '';
 
             //link
             chatDetails['link'] = 'https://telegram.me/' + username;
@@ -108,7 +108,7 @@ class Scrapper extends Threej{
             $('body > header > div > div.tgme_header_right_column > section > div > div.tgme_channel_info_counters > div').each((k,v)=>{
                 const type = $(v).find('span.counter_type').text();
                 const value = $(v).find('span.counter_value').text();
-                chatDetails[type] = this.rkFormat(value);
+                chatDetails[(type.endsWith('s') ? type : type + 's')] = this.rkFormat(value);
             })
             if(chatDetails.file){
                 chatDetails.files = chatDetails.file;
@@ -143,7 +143,7 @@ class Scrapper extends Threej{
             chatDetails['description'] = $('body > div.tgme_page_wrap > div.tgme_body_wrap > div > div.tgme_page_description').html() || '';
 
             //photo
-            chatDetails['photo'] = $('body > div.tgme_page_wrap > div.tgme_body_wrap > div > div.tgme_page_photo > a > img').attr('src') || '';
+            chatDetails['photo'] = $('img').attr('src') || '';
 
             //link
             chatDetails['link'] = 'https://telegram.me/' + username;
