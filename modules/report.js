@@ -2,7 +2,7 @@ const { Telegraf } = require('telegraf');
 const { CHATFLAG, Tgbot } = require('../modules/tgbot');
 
 const bot = new Telegraf(process.env.BOT_TOKEN);
-const tgbot = new Tgbot();
+const tgbot = new Tgbot(parseInt(process.env.BOT_ADMIN));
 
 /**
  * Forwards poll to report a chat
@@ -18,7 +18,7 @@ module.exports.reportChat = async (chatDetails, userId) => {
                 chatDetails.REPORT
             );
         }else{
-            var [i, ...flags] = CHATFLAG;
+            var [sfw, ...flags] = CHATFLAG;
             const result = await bot.telegram.sendPoll(
                 process.env.MODSCHATID,
                 `#${chatDetails.CID} Report ${chatDetails.USERNAME || chatDetails.TITLE}`,

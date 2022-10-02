@@ -141,7 +141,8 @@ module.exports.handleInlineQueries = async function (ctx, bot, tgbot, Markup){
                 await ctx.answerInlineQuery(result,{cache_time:3600});
                 
             } catch (error) {
-                tgbot.logError(error);
+                if(!tgbot.knownErrors(error))
+                    tgbot.logError(error);
             }
         break;
     }

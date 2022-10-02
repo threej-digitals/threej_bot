@@ -43,11 +43,13 @@ module.exports.handleCommands = function(update, tgbot){
             if(ctx.chat?.type != 'private') return;
             
             // reply with corresponding message
+            const command = ctx.message.text.substring(1);
             return await ctx.reply(
-                commands[ctx.message.text.substring(1)],
+                commands[command],
                 {
                     parse_mode :'HTML',
-                    disable_web_page_preview:true
+                    disable_web_page_preview:true,
+                    reply_markup: Markup.inlineKeyboard(commands.reply_markup[command]).reply_markup
                 }
             );
         }
@@ -101,18 +103,22 @@ module.exports.handleCommands = function(update, tgbot){
             }
         }
 
-        const {stickers} = require('../messages/sticker');
-        const {menu} = require('../keyboards/primaryMenu');
         //greet with sticker
-        await ctx.sendSticker(stickers.greetings[tgbot.randomInt(stickers.greetings.length-1)],{
-            reply_markup: Markup.removeKeyboard().reply_markup
-        });
+        const stickers = tgbot.stickers.greetings;
+        await ctx.sendSticker(
+            stickers[tgbot.randomInt(stickers.length-1)],
+            {
+                reply_markup: Markup.removeKeyboard().reply_markup
+            }
+        );
 
         //send menu for interaction
         await ctx.reply(commands['start'] ,{
             parse_mode: 'HTML',
             disable_web_page_preview:true,
-            reply_markup : Markup.inlineKeyboard(menu(Markup)).reply_markup
+            reply_markup : Markup.inlineKeyboard(
+                tgbot.primaryMenu(Markup)
+            ).reply_markup
         });
         return true;
     })

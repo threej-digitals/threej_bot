@@ -1,16 +1,17 @@
 module.exports.faqMessage = {
     'en' : {
-        'faq' : `<b>Frequently Asked Questions</b>
+        'faqs' : `<b>Frequently Asked Questions</b>
 
 Q: What is the requirement for adding chats?
 <code>
-A: Chat must have atleast 100 subscribers or members
+A: Chat must have atleast 100 subscribers/members.
 </code>
 
 Q: How Free chat promotion works?
 <code>
 A: Previously all the newly listed chats were promoted to our different social media accounts. But due to low quality contents, we decided to change the promotion strategy.
-And from 25th sept 2022, we are only promoting chats with atleast 5 community votes.
+
+Applicable from 25th sept 2022, we are only promoting chats with atleast 5 community votes.
 </code>
 
 Q: In which platform chats will be promoted to?

@@ -19,22 +19,26 @@ async function getChatDetails(username, tgbot){
     if(!chatDetails){
         try {
             if(typeof username == 'string') username = '@' + username;
-            
+
             const result = await bot.telegram.getChat(username);
 
-            var chatDetails = tgbot.chatDetails;
+            var chatDetails = tgbot.chatDetailsFormat;
             chatDetails['id'] = result.id;
             chatDetails['title'] = result.title;
             chatDetails['description'] = result.description;
             chatDetails['username'] = result.username || '';
             chatDetails['type'] = result.type || '';
+            chatDetails['link'] = result.invite_link || '';
 
             chatDetails['subscribers'] = await bot.telegram.getChatMembersCount(result.id);
 
-            const fileLink = await bot.telegram.getFileLink(result.photo.small_file_id);
-            // Download profile pic and store it in server
-            chatDetails.photo = await tgbot.saveRemoteFile(fileLink.href, process.env.ABS_HOMEPATH + process.env.ASSETS_FOLDER,'chat'+result.id) || '';
-            chatDetails.photo = chatDetails.photo.replace(process.env.ABS_HOMEPATH,'');
+            if(typeof result.photo == 'object'){
+
+                const fileLink = await bot.telegram.getFileLink(result.photo.small_file_id);
+                // Download profile pic and store it in server
+                chatDetails.photo = await tgbot.saveRemoteFile(fileLink.href, process.env.ABS_HOMEPATH + process.env.ASSETS_FOLDER,'chat'+result.id) || '';
+                chatDetails.photo = chatDetails.photo.replace(process.env.ABS_HOMEPATH,'');
+            }
         } catch (error) {
             tgbot.logError(error)
             return 'Chat not found!';
@@ -43,36 +47,49 @@ async function getChatDetails(username, tgbot){
     return chatDetails;
 }
 
-module.exports.updateAndGetChat = async (username, tgbot, listerRole = 'member') => {
-    const commands = require('../messages/commands').commands(tgbot.user.LANGCODE || 'en');
-    var chatDetails = await tgbot.getChatFromDB(username);
+/**
+ * 
+ * @param {object} chat 
+ * @param {object} tgbot 
+ * @param {string} listerRole 
+ * @returns 
+ */
+module.exports.updateAndGetChat = async (chat, tgbot, listerRole = 'member') => {
+    try {
 
-    //new chat
-    if(!chatDetails || chatDetails.length == 0){
-        
-        const chatDetails = await getChatDetails(username, tgbot);
-        if(typeof chatDetails != 'object') return chatDetails;
+        const commands = require('../messages/commands').commands(tgbot.user.LANGCODE || 'en');
+        var chatDetails = await tgbot.getChatFromDB(chat.username || chat.id);
 
-        //-----Check for eligibility-------//
-        if(chatDetails.type !== 'bot' && parseInt(chatDetails.subscribers) < 100){
-            return commands['ineligibleForListing'];
+        //new chat
+        if(!chatDetails || chatDetails.length == 0){
+            
+            const chatDetails = await getChatDetails(chat.username || chat.id, tgbot);
+            if(typeof chatDetails != 'object') return chatDetails;
+            chatDetails.id = chat.id || chatDetails.id;
+
+            //-----Check for eligibility-------//
+            if(chatDetails.type !== 'bot' && parseInt(chatDetails.subscribers) < 1){
+                return commands['ineligibleForListing'];
+            }
+
+            //-----Store chat details to DB------//
+            const response = await tgbot.newChat(chatDetails, listerRole);
+            if(response && response.affectedRows){
+                return await tgbot.getChatFromDB(chatDetails.username || chatDetails.id);
+            }else{
+                tgbot.logError(response);
+                return commands['chatListingFailed'];
+            }
         }
 
-        //-----Store chat details to DB------//
-        const response = await tgbot.newChat(chatDetails, listerRole);
-        if(response && response.affectedRows){
-            return await tgbot.getChatFromDB(chatDetails.username);
-        }else{
-            tgbot.logError(response);
-            return commands['chatListingFailed'];
+        //update chat if 24hr passed
+        if((Date.now()/1000 - chatDetails.LISTEDON) > 86400){
+            // const chatDetails = getChatDetails(username);
+            console.log('ok');
         }
-    }
 
-    //update chat if 24hr passed
-    if((Date.now()/1000 - chatDetails.LISTEDON) > 86400){
-        // const chatDetails = getChatDetails(username);
-        console.log('ok');
+        return chatDetails;
+    } catch (error) {
+        return tgbot.logError(error);
     }
-
-    return chatDetails;
 }

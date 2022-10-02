@@ -1,33 +1,11 @@
 require('dotenv').config();
 const { Telegraf, Markup, Context} = require('telegraf');
 const { Tgbot, CHATFLAG } = require('./modules/tgbot');
-const { updateAndGetChat } = require('./modules/newChat');
-const { chatDetailsCard } = require('./cards/chatDetails');
-const fs = require('fs');
 
 const bot = new Telegraf(process.env.BOT_TOKEN);
-const tgbot = new Tgbot();
+const tgbot = new Tgbot(parseInt(process.env.BOT_ADMIN));
 
-
-async function sendFormattedChatDetails(ctx, chatDetails){
-    //---- Get chat details card -----//
-    const {text, markup} = chatDetailsCard(chatDetails, Markup, tgbot);
-
-    //----reply---//
-    if(!chatDetails.PHOTO){
-        await ctx.reply(text,{
-            parse_mode: 'HTML',
-            reply_markup: Markup.inlineKeyboard(markup).reply_markup
-        });
-    }else{
-        await ctx.replyWithPhoto(process.env.HOMEURI + chatDetails.PHOTO, {
-            caption: text,
-            parse_mode: 'HTML',
-            reply_markup: Markup.inlineKeyboard(markup).reply_markup
-        });
-    }
-}
-
+// Update chat flag when new ANONYMOUS vote received from poll
 bot.on('poll', async (ctx) => {
     const match = ctx.poll.question.match(/^#(\d+) .*$/);
     const options = ctx.poll.options;
@@ -44,64 +22,102 @@ bot.on('poll', async (ctx) => {
             return await tgbot.updateChatFlag(match[1], CHATFLAG[flag]);
         }
     }
+    return true;
 })
 
+//return if received action is not performed by a user
+bot.use(async (ctx, next)=>{
+// console.log( JSON.stringify(ctx.telegram) );
+    if(
+        typeof ctx.from == 'undefined' &&
+        typeof ctx.callbackQuery == 'undefined' &&
+        typeof ctx.myChatMember == 'undefined'
+    )
+    return true;
+
+    return await next();
+});
+
+// log user and proceed
 bot.use(async (ctx, next)=>{
     try {
-        // console.log( JSON.stringify(ctx) );
-        // fs.appendFileSync('./t.json',"\n\n\n\n" + JSON.stringify(ctx));
-        //Decide when to respond
-        if(
-            typeof ctx.from == 'undefined' &&
-            typeof ctx.callbackQuery == 'undefined' &&
-            typeof ctx.myChatMember == 'undefined'
-        ){
-            return true;
-        }
-        // Log user details to DB when bot is started by new user.
-        if(!(await tgbot.logUser(ctx.from || ctx.callbackQuery.from || ctx.myChatMember.from))) return;
-
-        // Handle bot commands
-        if(ctx?.message?.entities && ctx.message.entities[0].type == 'bot_command'){
-            const {handleCommands} = require('./modules/commands');
-            return handleCommands(ctx.update, tgbot);
-        }
-        return next();
+        if(!(await tgbot.logUser(ctx.from || ctx.callbackQuery.from || ctx.myChatMember.from)))
+        return true;
     } catch (error) {
         tgbot.logError(error);
+        return true;
     }
-})
+    return await next();
+});
 
+// load required modules
+tgbot.updateAndGetChat = require('./modules/newChat').updateAndGetChat;
+const commands = require('./messages/commands').commands(tgbot.user.LANGCODE || 'en');
+
+// handle bot commands
+bot.use(async (ctx, next)=>{
+    if(ctx?.message?.entities && ctx.message.entities[0].type == 'bot_command'){
+        return await require('./modules/commands').handleCommands(ctx.update, tgbot);
+    }
+    return await next();
+});
+
+// handle change in chat memeber status
 bot.on('my_chat_member', async (ctx) => {
-    const chatMember = await bot.telegram.getChatMember(ctx.myChatMember.chat.id, ctx.myChatMember.from.id)
-    var chatDetails = {};
-    if(typeof ctx.myChatMember.chat.username == 'string'){
-        chatDetails = await updateAndGetChat(ctx.myChatMember.chat.username, tgbot, chatMember.status);
+    // bot removed from chat
+    if(ctx.myChatMember.new_chat_member.status == 'left'){
+        return;
     }else{
-        chatDetails = await updateAndGetChat(ctx.myChatMember.chat.username, tgbot, chatMember.status);
-    }
 
-    if(typeof chatDetails == 'string'){
-        return tgbot.logError(chatDetails);
-    }
+        const chatMember = await bot.telegram.getChatMember(ctx.myChatMember.chat.id, ctx.myChatMember.from.id)
+        var chatDetails = {};
+        if(typeof ctx.myChatMember.chat.username == 'string'){
+            chatDetails = await tgbot.updateAndGetChat(
+                {
+                    id: ctx.myChatMember.chat.id,
+                    username: ctx.myChatMember.chat.username
+                },
+                tgbot,
+                chatMember.status
+            );
+        }else{
+            chatDetails = await tgbot.updateAndGetChat(
+                { id: ctx.myChatMember.chat.id },
+                tgbot,
+                chatMember.status
+            );
+        }
     
-    return await sendFormattedChatDetails(ctx, chatDetails);
+        if(typeof chatDetails == 'string'){
+            return tgbot.logError(chatDetails);
+        }
+        ctx.chat.id = ctx.myChatMember.from.id;
+        return await tgbot.sendFormattedChatDetails(ctx, chatDetails);
+    }
 
 })
 
+// handle callback queries
 bot.on('callback_query',(ctx)=>{
-    const {handleCallback} = require('./modules/callbackHandler');
-    handleCallback(ctx, tgbot);
+    require('./modules/callbackHandler').handleCallback(ctx, tgbot);
 })
 
+// handle inline queries
 bot.on('inline_query',(ctx)=>{
-    const {handleInlineQueries} = require('./modules/inlineQueryHandler');
-    handleInlineQueries(ctx, bot, tgbot, Markup);
+    require('./modules/inlineQueryHandler').handleInlineQueries(ctx, bot, tgbot, Markup);
 })
 
+bot.on('sticker',(ctx)=>{
+    console.log(ctx.message)
+})
+
+// handle text received from user
 bot.on('text', async (ctx)=>{
     // Do not process message if not received from private chat
     if(ctx.message.chat.type != 'private') return true;
+
+    // stop processing self inline query results
+    if(typeof ctx.message.via_bot == 'object' && ctx.message.via_bot.username == ctx.me) return;
 
     ctx.sendChatAction('typing');
     var text = ctx.message.text;
@@ -113,38 +129,36 @@ bot.on('text', async (ctx)=>{
 
         if(!username){
             //-----Check for username-----//
-            match = text.match(/@([0-9a-zA-Z-_]*).*$/);
+            match = text.match(/^.*@([0-9a-zA-Z-_]*).*$/);
             if(match && match.length == 2){
                 username = match[1];
             }
         }
+
         //----- If username found then user is requesting for a chat ----//
         if(username){
 
-            const chatDetails = await updateAndGetChat(username, tgbot);
+            const chatDetails = await tgbot.updateAndGetChat({username: username}, tgbot);
             if(typeof chatDetails == 'string'){
                 return await ctx.reply(chatDetails);
             }
             
-            return await sendFormattedChatDetails();
+            return await tgbot.sendFormattedChatDetails(ctx, chatDetails);
         }
 
         //-----default error message------//
-        await ctx.reply('Unknown command. Send /help to see the list of available commands');
-        return true;
+        return await ctx.reply(commands['unknownCommand']);
     } catch (error) {
         tgbot.logError(error);
-        ctx.reply('Unknown error occured! Please report this issue to our support chat @threej_discuss')
-        bot.telegram.sendMessage(process.env.BOT_ADMIN, text + '; Err: ' + error.message);
+        await ctx.reply(commands['unknownError']);
+        await bot.telegram.sendMessage(process.env.BOT_ADMIN, text + '; Err: ' + error.message);
     }
 })
 
-bot.on('sticker',(ctx)=>{
-    console.log(ctx.message)
-})
-
+// handle errors
 bot.catch((err)=>{tgbot.logError(err)});
 
+// Launch bot
 bot.launch({
     polling:{
         allowed_updates: [

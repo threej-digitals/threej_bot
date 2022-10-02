@@ -1,10 +1,11 @@
 const { helpMessage } = require('./help');
 const { faqMessage } = require('./faq');
+const { Markup } = require('telegraf');
 
 const messages = {
     "en" : {
-        "addNewChat" : "Okay send me the 🔗 link or username of a public chat...",
-        "addNewGroup" : "Okay send me the 🔗 link or username of a public group chat...",
+        "addNewChat" : "Okay send me the 🔗 link or username of a public chat, or click on the below button to add a private chat. 👇",
+        "addNewGroup" : "Okay send me the 🔗 link or username of a public group chat, , or click on the below button to add a private chat. 👇",
         "addNewBot" : "Okay send me the 🔗 link or username of Bot...",
         "addNewSticker" : "Feature under development.",
         "chatListingFailed" : "Failed to list your chat. Please report this issue to our support chat @threej_discuss",
@@ -18,7 +19,16 @@ const messages = {
         "promotionAccepted" : "✅ Your promotion request has been accepted.",
         "promotionRequested" : "✅ Promotion request sent to moderators.",
         "start" : `Add or explore Telegram chats available in the <a href="${process.env.TGPAGELINK}">Telegram Directory</a>\n\nSubscribe to @directorygram and @threej_in`,
-        "unknownError" : "Unkown error occurred!"
+        "unknownCommand" : "Unknown command. Send /help to see the list of available commands",
+        "unknownError" : "Unkown error occurred! Please report this issue to our support chat @threej_discuss",
+        reply_markup : {
+            "addNewChat" : [
+                [Markup.button.url('🔐 Add private chat',`https://t.me/${process.env.BOT_USERNAME.substring(1)}?startgroup=claimchat`)]
+            ],
+            "addNewGroup" : [
+                [Markup.button.url('🔐 Add private chat',`https://t.me/${process.env.BOT_USERNAME.substring(1)}?startgroup=claimchat`)]
+            ]
+        }
     }
 }
 

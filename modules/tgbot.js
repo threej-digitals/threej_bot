@@ -1,7 +1,6 @@
 const axios = require('axios');
 const qs = require('qs');
-const scrapper = require('./scrapper');
-const { Threej, threej } = require('./threej');
+const { Threej } = require('./threej');
 
 /**
  * Chat member status as per telegram API
@@ -38,10 +37,18 @@ const CHATACTION = {
 const CHATFLAG = ['SFW','Copyright','NSFW','Spam','Scam','Illegal Activities','Violence','Child Abuse','Chat is Dead'];
 
 class Tgbot extends Threej{
-    constructor(){
+    constructor(adminId){
         super()
+
+        if(typeof adminId != 'number')
+        throw new Error('Invalid adminId');
+        this.admin = adminId;
+
+        this.stickers = require('../messages/sticker').stickers;
+        this.primaryMenu = require('../keyboards/primaryMenu').menu;
         this.user = {};
-        this.chatDetails = {
+        this.chatDetails = {};
+        this.chatDetailsFormat = {
             'listerId' : -1,
             'listerRole' : -1,
             'id' : false,
@@ -83,7 +90,7 @@ class Tgbot extends Threej{
      * @returns {object}
      */
     async getChatFromDB(CIDorUsername){
-        const column = !Math.round(CIDorUsername) ? 'USERNAME' : 'CID';
+        const column = !Math.round(CIDorUsername) ? 'USERNAME' : (CIDorUsername < 0 ? 'CHATID' : 'CID');
         const result = await this.query(
             'SELECT * FROM ?? WHERE ?? = ?',
             [process.env.CHATSTABLE, column, CIDorUsername]
@@ -205,7 +212,9 @@ class Tgbot extends Threej{
             'demote chat creator',
             'USER_BANNED_IN_CHANNEL',
             'Too Many Requests',
-            'message is not modified'
+            'message is not modified',
+            'user not found',
+            'WEBDOCUMENT_URL_INVALID'
         ];
         for (const message of dismissableErrors) {
             if (error.message.indexOf(message) > -1) {
@@ -333,6 +342,26 @@ class Tgbot extends Threej{
                 chatType.toLowerCase()
             ]
         );
+    }
+
+    // Message formatting
+    async sendFormattedChatDetails(ctx, chatDetails){
+        //---- Get chat details card -----//
+        const {text, markup, Markup} = require('../cards/chatDetails').chatDetailsCard(chatDetails, this);
+
+        //----reply---//
+        if(!chatDetails.PHOTO){
+            await ctx.reply(text,{
+                parse_mode: 'HTML',
+                reply_markup: Markup.inlineKeyboard(markup).reply_markup
+            });
+        }else{
+            await ctx.replyWithPhoto(process.env.HOMEURI + chatDetails.PHOTO, {
+                caption: text,
+                parse_mode: 'HTML',
+                reply_markup: Markup.inlineKeyboard(markup).reply_markup
+            });
+        }
     }
 
     /**
