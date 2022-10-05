@@ -1,8 +1,7 @@
 require('dotenv').config();
-const { Telegraf, Markup, Context} = require('telegraf');
+const bot = new (require("telegraf").Telegraf)(process.env.BOT_TOKEN);
 const { Tgbot, CHATFLAG } = require('./modules/tgbot');
 
-const bot = new Telegraf(process.env.BOT_TOKEN);
 const tgbot = new Tgbot(parseInt(process.env.BOT_ADMIN));
 
 // Update chat flag when new ANONYMOUS vote received from poll
@@ -27,7 +26,7 @@ bot.on('poll', async (ctx) => {
 
 //return if received action is not performed by a user
 bot.use(async (ctx, next)=>{
-// console.log( JSON.stringify(ctx.telegram) );
+// console.log( JSON.stringify(ctx.update) );
     if(
         typeof ctx.from == 'undefined' &&
         typeof ctx.callbackQuery == 'undefined' &&
@@ -35,11 +34,7 @@ bot.use(async (ctx, next)=>{
     )
     return true;
 
-    return await next();
-});
-
-// log user and proceed
-bot.use(async (ctx, next)=>{
+    // log user and proceed
     try {
         if(!(await tgbot.logUser(ctx.from || ctx.callbackQuery.from || ctx.myChatMember.from)))
         return true;
@@ -52,7 +47,7 @@ bot.use(async (ctx, next)=>{
 
 // load required modules
 tgbot.updateAndGetChat = require('./modules/newChat').updateAndGetChat;
-const commands = require('./messages/commands').commands(tgbot.user.LANGCODE || 'en');
+const commands = require('./messages/commands').commands(tgbot.user.LANGCODE || 'en')[0];
 
 // handle bot commands
 bot.use(async (ctx, next)=>{
@@ -67,7 +62,14 @@ bot.on('my_chat_member', async (ctx) => {
     // bot removed from chat
     if(ctx.myChatMember.new_chat_member.status == 'left'){
         return;
-    }else{
+    }else if(
+        ctx.myChatMember.chat.type == 'private' &&
+        ctx.myChatMember.new_chat_member.status == 'kicked' &&
+        ctx.myChatMember.new_chat_member.user.username == ctx.me
+    ){
+        // User blocked the bot update user status
+        return await tgbot.updateUserPreference('blocked');
+    }else if(ctx.myChatMember.chat.type != 'private'){
 
         const chatMember = await bot.telegram.getChatMember(ctx.myChatMember.chat.id, ctx.myChatMember.from.id)
         var chatDetails = {};
@@ -88,10 +90,10 @@ bot.on('my_chat_member', async (ctx) => {
             );
         }
     
-        if(typeof chatDetails == 'string'){
-            return tgbot.logError(chatDetails);
-        }
         ctx.chat.id = ctx.myChatMember.from.id;
+        if(typeof chatDetails == 'string'){
+            return await ctx.reply(chatDetails, {parse_mode: 'HTML'});
+        }
         return await tgbot.sendFormattedChatDetails(ctx, chatDetails);
     }
 
@@ -140,6 +142,7 @@ bot.on('text', async (ctx)=>{
 
             const chatDetails = await tgbot.updateAndGetChat({username: username}, tgbot);
             if(typeof chatDetails == 'string'){
+                tgbot.logError('error while handling ' + JSON.stringify(ctx.update));
                 return await ctx.reply(chatDetails);
             }
             
@@ -149,7 +152,7 @@ bot.on('text', async (ctx)=>{
         //-----default error message------//
         return await ctx.reply(commands['unknownCommand']);
     } catch (error) {
-        tgbot.logError(error);
+        tgbot.logError(error + JSON.stringify(ctx.update));
         await ctx.reply(commands['unknownError']);
         await bot.telegram.sendMessage(process.env.BOT_ADMIN, text + '; Err: ' + error.message);
     }

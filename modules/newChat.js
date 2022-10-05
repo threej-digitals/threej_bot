@@ -1,7 +1,5 @@
-const { Telegraf } = require('telegraf');
+const bot = new (require("telegraf").Telegraf)(process.env.BOT_TOKEN);
 const scrapper = require('./scrapper');
-
-const bot = new Telegraf(process.env.BOT_TOKEN);
 
 async function getChatDetails(username, tgbot){
 
@@ -37,7 +35,6 @@ async function getChatDetails(username, tgbot){
                 const fileLink = await bot.telegram.getFileLink(result.photo.small_file_id);
                 // Download profile pic and store it in server
                 chatDetails.photo = await tgbot.saveRemoteFile(fileLink.href, process.env.ABS_HOMEPATH + process.env.ASSETS_FOLDER,'chat'+result.id) || '';
-                chatDetails.photo = chatDetails.photo.replace(process.env.ABS_HOMEPATH,'');
             }
         } catch (error) {
             tgbot.logError(error)
@@ -57,7 +54,7 @@ async function getChatDetails(username, tgbot){
 module.exports.updateAndGetChat = async (chat, tgbot, listerRole = 'member') => {
     try {
 
-        const commands = require('../messages/commands').commands(tgbot.user.LANGCODE || 'en');
+        const commands = require('../messages/commands').commands(tgbot.user.LANGCODE || 'en')[0];
         var chatDetails = await tgbot.getChatFromDB(chat.username || chat.id);
 
         //new chat
@@ -68,11 +65,12 @@ module.exports.updateAndGetChat = async (chat, tgbot, listerRole = 'member') => 
             chatDetails.id = chat.id || chatDetails.id;
 
             //-----Check for eligibility-------//
-            if(chatDetails.type !== 'bot' && parseInt(chatDetails.subscribers) < 1){
+            if(chatDetails.type !== 'bot' && parseInt(chatDetails.subscribers) < 100){
                 return commands['ineligibleForListing'];
             }
 
             //-----Store chat details to DB------//
+            chatDetails.photo = chatDetails.photo.replace(process.env.ABS_HOMEPATH,'');
             const response = await tgbot.newChat(chatDetails, listerRole);
             if(response && response.affectedRows){
                 return await tgbot.getChatFromDB(chatDetails.username || chatDetails.id);

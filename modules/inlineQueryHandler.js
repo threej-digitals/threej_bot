@@ -142,7 +142,7 @@ module.exports.handleInlineQueries = async function (ctx, bot, tgbot, Markup){
                 
             } catch (error) {
                 if(!tgbot.knownErrors(error))
-                    tgbot.logError(error);
+                    tgbot.logError(error + JSON.stringify(ctx.update));
             }
         break;
     }

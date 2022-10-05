@@ -32,6 +32,15 @@ const CHATACTION = {
 }
 
 /**
+ * User preferences
+ */
+const USERPREFERENCES = {
+    '' : 1,
+    'NOUPDATES' : 2,
+    'BLOCKED' : 3
+}
+
+/**
  * Flags for reporting contents
  */
 const CHATFLAG = ['SFW','Copyright','NSFW','Spam','Scam','Illegal Activities','Violence','Child Abuse','Chat is Dead'];
@@ -86,7 +95,7 @@ class Tgbot extends Threej{
 
     /**
      * Get chat details from DB using cid or username
-     * @param {string|integer} CIDorUsername 
+     * @param {string|number} CIDorUsername 
      * @returns {object}
      */
     async getChatFromDB(CIDorUsername){
@@ -130,7 +139,7 @@ class Tgbot extends Threej{
 
         try {
             const now = Date.now()/1000;
-            const sql = 'INSERT INTO ?? (`LISTERID`, `LISTERROLE`, `CHATID`, `TITLE`, `DESCRIPTION`, `USERNAME`, `CTYPE`, `LINK`, `PHOTO`, `SUBSCOUNT`, `STATUS`, `CUPDATE`, `VIEWS`, `LISTEDON`, `PICSCOUNT`, `VIDEOSCOUNT`, `LINKSCOUNT`, `POSTCOUNT`, `FILECOUNT`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)';
+            const sql = `INSERT INTO ?? (LISTERID, LISTERROLE, CHATID, TITLE, DESCRIPTION, USERNAME, CTYPE, LINK, PHOTO, SUBSCOUNT, STATUS, CUPDATE, VIEWS, LISTEDON, PICSCOUNT, VIDEOSCOUNT, LINKSCOUNT, POSTCOUNT, FILECOUNT) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`;
             const values = [
                 process.env.CHATSTABLE,
                 chatDetails.listerId,
@@ -163,7 +172,7 @@ class Tgbot extends Threej{
 
     /**
      * New action
-     * @param {integer} chatId 
+     * @param {number} chatId 
      * @param {string} action 
      * @returns 
      */
@@ -214,7 +223,8 @@ class Tgbot extends Threej{
             'Too Many Requests',
             'message is not modified',
             'user not found',
-            'WEBDOCUMENT_URL_INVALID'
+            'WEBDOCUMENT_URL_INVALID',
+            'bot was blocked by the user'
         ];
         for (const message of dismissableErrors) {
             if (error.message.indexOf(message) > -1) {
@@ -258,6 +268,8 @@ class Tgbot extends Threej{
                 if(result.affectedRows)
                     await this.logUser(user);
                 else return false;
+            }else if(this.user.PREFERENCES == USERPREFERENCES['BLOCKED']){
+                await this.updateUserPreference();
             }
             return true;
         } catch (error) {
@@ -269,7 +281,7 @@ class Tgbot extends Threej{
     /**
      * 
      * @param {object} chatDetails
-     * @param {BigInteger} listerId
+     * @param {number} listerId
      * @returns {boolean}
      */
     async newChat(chatDetails, listerRole = 0){
@@ -395,7 +407,7 @@ class Tgbot extends Threej{
 
     /**
      * Updates chat flag
-     * @param {integer} chatId 
+     * @param {number} chatId 
      * @param {string} flag 
      * @returns 
      */
@@ -408,6 +420,31 @@ class Tgbot extends Threej{
                 CHATFLAG.indexOf(flag),
                 chatId
             ]
+            return await this.query(sql, values);
+        } catch (error) {
+            this.logError(error);
+            return false;
+        }
+    }
+
+    /**
+     * 
+     * @param {number} userId 
+     * @param {string} preferences - send 'blocked' or 'noupdates'
+     * @returns 
+     */
+    async updateUserPreference(preferences = ''){
+        if(typeof preferences != 'string') return false;
+
+        const sql = `UPDATE ?? SET 
+            PREFERENCES = ?
+            WHERE TUID = ?`;
+        const values = [
+            process.env.USERSTABLE,
+            USERPREFERENCES[preferences.toUpperCase()] || 1,
+            this.user.TUID
+        ];
+        try {
             return await this.query(sql, values);
         } catch (error) {
             this.logError(error);

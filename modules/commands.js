@@ -4,7 +4,7 @@ const { reportChat } = require('./report');
 const botUsername = process.env.BOT_USERNAME;
 
 module.exports.handleCommands = function(update, tgbot){
-    const commands = require('../messages/commands').commands(tgbot.user.LANGCODE || 'en');
+    const commands = require('../messages/commands').commands(tgbot.user.LANGCODE || 'en')[0];
     bot.handleUpdate(update);
 
     // List of commands to reply for in groups
@@ -44,14 +44,16 @@ module.exports.handleCommands = function(update, tgbot){
             
             // reply with corresponding message
             const command = ctx.message.text.substring(1);
-            return await ctx.reply(
-                commands[command],
-                {
-                    parse_mode :'HTML',
-                    disable_web_page_preview:true,
+            let options = {
+                parse_mode :'HTML',
+                disable_web_page_preview:true
+            };
+            if(commands.reply_markup[command]){
+                options = Object.assign(options, {
                     reply_markup: Markup.inlineKeyboard(commands.reply_markup[command]).reply_markup
-                }
-            );
+                });
+            }
+            return await ctx.reply(commands[command].toString(), options);
         }
     )
 
@@ -92,7 +94,7 @@ module.exports.handleCommands = function(update, tgbot){
 
                     //send chat details
                     const {chatDetailsCard} = require('../cards/chatDetails');
-                    const {text, markup} = chatDetailsCard(chatDetails, Markup, tgbot);
+                    const {text, markup} = chatDetailsCard(chatDetails, tgbot);
                     return await ctx.reply(text,{
                         parse_mode: 'HTML',
                         reply_markup: Markup.inlineKeyboard(markup).reply_markup

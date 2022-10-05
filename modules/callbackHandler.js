@@ -5,7 +5,7 @@ const CATEGORIES=["🦁 Animals & Pets","🎎 Anime","🎨 Art & Paintings","�
 const LANGUAGES=[{'ar' : 'اللغة العربية'},{ 'bn' : 'বাংলা'},{  'cn' : '中国人'},{'de' : 'Deutsche'},{ 'en' : 'English'},{ 'es' : 'Español'},{ 'fr' : 'Français'},{'gu' : 'ગુજરાતી'},{ 'hi' : 'हिंदी'},{ 'id' : 'Indonesian'},{ 'it' : 'Italiano'},{ 'ja' : '日本語'},{ 'kn' : 'ಕನ್ನಡ'},{ 'ko' : '한국어'},{ 'ky' : 'Кыргызча'},{ 'la' : 'Latine'},{ 'ms' : 'Melayu'},{ 'ml' : 'മലയാളം'},{ 'mr' : 'मराठी'},{ 'ne' : 'नेपाली'},{ 'nl' : 'Deutsch'},{ 'no' : 'norsk'},{ 'pa' : 'ਪੰਜਾਬੀ'},{ 'fa' : 'فارسی'},{ 'pt' : 'Português'},{ 'ru' : 'Pусский'},{ 'sa' : 'संस्कृत'},{ 'sv' : 'svenska'},{ 'ta' : 'தமிழ்'},{ 'te' : 'తెలుగు'},{ 'th' : 'ภาษาไทย'},{ 'tr' : 'Türk'},{ 'uk' : 'Український'},{ 'ur' : 'اردو'},{ 'uz' : 'O\'zbek'},{ 'vi' : 'tiếng Việt'},{ 'mt' : 'multiple'},{'' : 'Other'}];
 
 module.exports.handleCallback = async function (ctx, tgbot){
-    const commands = require('../messages/commands').commands(tgbot.user.LANGCODE || 'en');
+    const commands = require('../messages/commands').commands(tgbot.user.LANGCODE || 'en')[0];
     const key = ctx.callbackQuery.data || '';
 
     try {
@@ -87,8 +87,8 @@ module.exports.handleCallback = async function (ctx, tgbot){
                 const cid = JSON.parse(key.substr(15)).cid;
                 var chatDetails = await tgbot.getChatFromDB(cid);
 
-                // return if not lister
-                if(chatDetails.LISTERID != tgbot.user.TUID) return;
+                // return if neither lister nor admin
+                if(chatDetails.LISTERID != tgbot.user.TUID && tgbot.user.TGID != process.env.BOT_ADMIN) return;
 
                 await ctx.answerCbQuery(commands['chooseCategory']);
                 await ctx.editMessageReplyMarkup(Markup.inlineKeyboard(category(cid, Markup, CATEGORIES)).reply_markup);
@@ -140,8 +140,8 @@ module.exports.handleCallback = async function (ctx, tgbot){
                     return await ctx.sendMessage(message, {
                         parse_mode:'HTML',
                         reply_markup: Markup.inlineKeyboard([
-                            [Markup.button.switchToChat('⭐️ Ask subsribers to rate this chat',`cid#${cbData.cid}`)],
-                            [Markup.button.callback('📣 Promote chat for free.','📣')],
+                            [Markup.button.switchToChat('⭐️ Ask subsribers to rate this chat',`cid#${chatDetails.CID}`)],
+                            [Markup.button.callback('📣 Promote chat for free.',`📣#{"cid":${chatDetails.CID}}`)],
                             [Markup.button.callback('🗑 Remove this chat from Telegram Directory', `unlist#{"cid":${chatDetails.CID}}`)]
                         ]).reply_markup
                     });
@@ -152,6 +152,12 @@ module.exports.handleCallback = async function (ctx, tgbot){
             //Remove/Unlist the chat
             case /^unlist#{.*}$/.test(key):
                 var cbData = JSON.parse(key.substr(7));
+                
+                //No need to verify if requested by moderator
+                if(tgbot.user.TGID != process.env.BOT_ADMIN){
+                    if((tgbot.getChatFromDB(cbData.cid)).LISTERID != tgbot.user.TGID) return;
+                }
+
                 await tgbot.updateChat(cbData.cid, {status:'unlisted'});
                 await ctx.answerCbQuery('Chat removed from Telegram directory.');
                 ctx.editMessageReplyMarkup(Markup.inlineKeyboard([[]]).reply_markup);
@@ -279,7 +285,7 @@ module.exports.handleCallback = async function (ctx, tgbot){
     } catch (error) {
         ctx.answerCbQuery();
         if(!tgbot.knownErrors(error))
-            tgbot.logError(error);
+            tgbot.logError(error + JSON.stringify(ctx.update));
     }
     return true;
 }

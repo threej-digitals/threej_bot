@@ -29,7 +29,8 @@ class Threej{
             user : process.env.MYSQLUSER,
             password : process.env.MYSQLPASSWORD,
             database : process.env.MYSQLDATABASE,
-            connectTimeout : 4000
+            connectTimeout : 4000,
+            charset: 'utf8mb4'
         });
     }
 
