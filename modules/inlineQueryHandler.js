@@ -1,8 +1,9 @@
-const { language } = require("../keyboards/language");
+const { Markup } = require("telegraf");
+const { CHATSTATUS } = require("./tgbot");
 
 const CATEGORIES=["🦁 Animals & Pets","🎎 Anime","🎨 Art & Paintings","📚 Books","🏎 Cars","💼 Career","💃🏼 Celebrity","👨‍👨‍👧‍👦 Community","⛓ Cryptocurrency","👩‍❤️‍👨 Dating","🎓 Educational","🎭 Entertainment","🧐 Facts","💰 Finance","😂 Funny","🎮 Gaming","🃏 GIFs","💻 Hacking","👩‍⚕️ Health","🧛 Horror","🧠 Knowledge","🔮 Life Hacks","💅🏻 Lifestyle","😂 Memes","🎬 Movies","🌞 Motivational","🏕 Nature","📰 News","🤵🏻 Political","🙋🏼 Personal","🖼 Photography","🏋️ Productive","💻 Programming","🔗 Promotion","🌐 Proxy","🗺 Regional","🥰 Relationship","🔬 Science","🎧 Song","📱 Social","🛒 Shopping","🕉 Spiritual","🏀 Sports","🚀 Startup","🏙 Stickers","📈 Stocks","🤴 Stories","📲 Technical","📨 Telegram","💭 Thoughts","💫 Tips & tricks","✈️ Travelling","🧵 Utility","📹 Videos","🎲 Others",""];
 const LANGUAGES={'ar' : 'اللغة العربية', 'bn' : 'বাংলা',  'cn' : '中国人','de' : 'Deutsche', 'en' : 'English', 'es' : 'Español', 'fr' : 'Français','gu' : 'ગુજરાતી', 'hi' : 'हिंदी', 'id' : 'Indonesian', 'it' : 'Italiano', 'ja' : '日本語', 'kn' : 'ಕನ್ನಡ', 'ko' : '한국어', 'ky' : 'Кыргызча', 'la' : 'Latine', 'ms' : 'Melayu', 'ml' : 'മലയാളം', 'mr' : 'मराठी', 'ne' : 'नेपाली', 'nl' : 'Deutsch', 'no' : 'norsk', 'pa' : 'ਪੰਜਾਬੀ', 'fa' : 'فارسی', 'pt' : 'Português', 'ru' : 'Pусский', 'sa' : 'संस्कृत', 'sv' : 'svenska', 'ta' : 'தமிழ்', 'te' : 'తెలుగు', 'th' : 'ภาษาไทย', 'tr' : 'Türk', 'uk' : 'Український', 'ur' : 'اردو', 'uz' : 'O\'zbek', 'vi' : 'tiếng Việt', 'mt' : 'multiple','' : 'Other'};
-module.exports.handleInlineQueries = async function (ctx, bot, tgbot, Markup){
+module.exports.handleInlineQueries = async function (ctx, tgbot){
     const query = ctx.inlineQuery.query || '';
 
     //No result for queries with length < 3
@@ -60,6 +61,16 @@ module.exports.handleInlineQueries = async function (ctx, bot, tgbot, Markup){
             try {
                 const chatid = query.substr(4);
                 const chatDetails = await tgbot.getChatFromDB(chatid);
+                if(chatDetails.STATUS != CHATSTATUS.listed){
+                    return await ctx.answerInlineQuery([{
+                        type: 'article',
+                        id:1,
+                        title:'🛑 Chat not found',
+                        input_message_content:{
+                            message_text :'No result'
+                        }
+                    }]);
+                }
                 //strip html tags
                 chatDetails.DESCRIPTION = chatDetails.DESCRIPTION.replace(/<[^>]*>?/gm, '');
                 //send chat detail with 1hr caching period

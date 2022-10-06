@@ -58,23 +58,23 @@ class Tgbot extends Threej{
         this.user = {};
         this.chatDetails = {};
         this.chatDetailsFormat = {
-            'listerId' : -1,
-            'listerRole' : -1,
-            'id' : false,
-            'username' : false,
-            'title' : '',
-            'description' : '',
-            'link': '',
-            'photo' : '',
-            'type': '',
-            'status': 0,
-            'postCount':false,
-            'views' : false,
-            'subscribers' : false,
-            'photos' : false,
-            'videos' : false,
-            'links' : false,
-            'files' : false,
+            'LISTERID' : -1,
+            'LISTERROLE' : -1,
+            'CHATID' : false,
+            'USERNAME' : false,
+            'TITLE' : '',
+            'DESCRIPTION' : '',
+            'LINK': '',
+            'PHOTO' : '',
+            'CTYPE': '',
+            'STATUS': 0,
+            'POSTCOUNT':false,
+            'VIEWS' : false,
+            'SUBSCOUNT' : false,
+            'PICSCOUNT' : false,
+            'VIDEOSCOUNT' : false,
+            'LINKSCOUNT' : false,
+            'FILECOUNT' : false,
         };
     }
 
@@ -131,9 +131,9 @@ class Tgbot extends Threej{
             this.logError('Column count doesn\'t match:' + JSON.stringify(chatDetails));
             return false;
         }
-        if(chatDetails.description){
+        if(chatDetails.DESCRIPTION){
             //strip HTML tags
-            chatDetails.description = chatDetails.description.replace(/<[^>]*>?/gm, '');
+            chatDetails.DESCRIPTION = chatDetails.DESCRIPTION.replace(/<[^>]*>?/gm, '');
         }
         this.chatDetails = chatDetails;
 
@@ -142,25 +142,25 @@ class Tgbot extends Threej{
             const sql = `INSERT INTO ?? (LISTERID, LISTERROLE, CHATID, TITLE, DESCRIPTION, USERNAME, CTYPE, LINK, PHOTO, SUBSCOUNT, STATUS, CUPDATE, VIEWS, LISTEDON, PICSCOUNT, VIDEOSCOUNT, LINKSCOUNT, POSTCOUNT, FILECOUNT) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`;
             const values = [
                 process.env.CHATSTABLE,
-                chatDetails.listerId,
-                chatDetails.listerRole,
-                chatDetails.id || null,
-                chatDetails.title,
-                chatDetails.description.replace(/<[^>]*>?/gm, '') || '',
-                chatDetails.username || null,
-                chatDetails.type,
-                chatDetails.link || '',
-                chatDetails.photo || '',
-                chatDetails.subscribers || null,
-                chatDetails.status,
+                chatDetails.LISTERID,
+                chatDetails.LISTERROLE,
+                chatDetails.CHATID || null,
+                chatDetails.TITLE,
+                chatDetails.DESCRIPTION.replace(/<[^>]*>?/gm, '') || '',
+                chatDetails.USERNAME || null,
+                chatDetails.CTYPE,
+                chatDetails.LINK || '',
+                chatDetails.PHOTO || '',
+                chatDetails.SUBSCOUNT || null,
+                chatDetails.STATUS,
                 now,
-                Math.round(chatDetails.views) || null,
+                Math.round(chatDetails.VIEWS) || null,
                 now,
-                chatDetails.photos || null,
-                chatDetails.videos || null,
-                chatDetails.links || null,
-                chatDetails.postCount || null,
-                chatDetails.file || null
+                chatDetails.PICSCOUNT || null,
+                chatDetails.VIDEOSCOUNT || null,
+                chatDetails.LINKSCOUNT || null,
+                chatDetails.POSTCOUNT || null,
+                chatDetails.FILECOUNT || null
             ]
             return await this.query(sql, values);
 
@@ -287,10 +287,10 @@ class Tgbot extends Threej{
     async newChat(chatDetails, listerRole = 0){
 
         // lister is a person who list the chat to telegram directory
-        chatDetails['listerId'] = this.user.TUID;
-        chatDetails['listerRole'] = MEMBERSTATUS[listerRole || 'member'];
+        chatDetails.LISTERID = this.user.TUID;
+        chatDetails.LISTERROLE = MEMBERSTATUS[listerRole || 'member'];
 
-        chatDetails['status'] = CHATSTATUS['new'];
+        chatDetails.STATUS = CHATSTATUS['new'];
         return await this.insertChat(chatDetails);
     }
 
@@ -382,21 +382,50 @@ class Tgbot extends Threej{
      * @returns 
      */
     async updateChat(chatId, options = {}){
-        const chatDetails = this.getChatFromDB()
-        const values = [
-            process.env.CHATSTABLE,
-            options.category || null,
-            options.language || null,
-            CHATSTATUS[options.status] || null,
-            options.report || 0,
-            chatId
-        ];
         const sql = `UPDATE ?? SET 
+            LISTERID = COALESCE(?, LISTERID), 
+            LISTERROLE = COALESCE(?, LISTERROLE), 
+            CHATID = COALESCE(?, CHATID), 
+            TITLE = COALESCE(?, TITLE), 
+            DESCRIPTION = COALESCE(?, DESCRIPTION), 
+            USERNAME = COALESCE(?, USERNAME), 
+            LINK = COALESCE(?, LINK), 
+            SUBSCOUNT = COALESCE(?, SUBSCOUNT), 
+            STATUS = COALESCE(?, STATUS),
             CATEGORY = COALESCE(?, CATEGORY), 
             CLANGUAGE = COALESCE(?, CLANGUAGE), 
-            STATUS = COALESCE(?, STATUS),
-            REPORT = ? 
+            CUPDATE = COALESCE(?, CUPDATE), 
+            VIEWS = COALESCE(?, VIEWS), 
+            PICSCOUNT = COALESCE(?, PICSCOUNT), 
+            VIDEOSCOUNT = COALESCE(?, VIDEOSCOUNT), 
+            LINKSCOUNT = COALESCE(?, LINKSCOUNT), 
+            POSTCOUNT = COALESCE(?, POSTCOUNT), 
+            FILECOUNT = COALESCE(?, FILECOUNT), 
+            REPORT = COALESCE(?, REPORT)
             WHERE CID = ?`;
+        const values = [
+            process.env.CHATSTABLE,
+            options.LISTERID || null,
+            MEMBERSTATUS[options.LISTERROLE] || null,
+            options.CHATID || null,
+            options.TITLE || null,
+            options.DESCRIPTION || null,
+            options.USERNAME || null,
+            options.LINK || null,
+            options.SUBSCOUNT || null,
+            CHATSTATUS[options.STATUS] || null,
+            options.CATEGORY || null,
+            options.CLANGUAGE || null,
+            Date.now()/1000,
+            options.VIEWS || null,
+            options.PICSCOUNT || null,
+            options.VIDEOSCOUNT || null,
+            options.LINKSCOUNT || null,
+            options.POSTCOUNT || null,
+            options.FILECOUNT || null,
+            options.REPORT || null,
+            chatId
+        ];
         try {
             return await this.query(sql, values);
         } catch (error) {

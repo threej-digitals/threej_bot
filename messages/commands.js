@@ -34,6 +34,7 @@ const messages = {
 
 
 module.exports.commands = (langCode) => {
+    // Returning an object result into emoji parsing error on server, Hence returning as array.
     if(Object.keys(messages).includes(langCode)){
         return [Object.assign(messages[langCode], helpMessage[langCode], faqMessage[langCode])];
     }else{

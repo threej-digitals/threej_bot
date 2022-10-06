@@ -98,7 +98,7 @@ module.exports.handleCallback = async function (ctx, tgbot){
             case /^updateCategory#{.*}$/.test(key):
                 const {language} = require('../keyboards/language');
                 var cbData = JSON.parse(key.substr(15));
-                var response = await tgbot.updateChat(cbData.cid, {category:cbData.cat});
+                var response = await tgbot.updateChat(cbData.cid, {CATEGORY:cbData.cat});
                 if(response){
                     await ctx.answerCbQuery(commands['chooseLanguage']);
                     ctx.editMessageReplyMarkup(Markup.inlineKeyboard(language(cbData.cid, Markup, LANGUAGES)).reply_markup);
@@ -111,14 +111,14 @@ module.exports.handleCallback = async function (ctx, tgbot){
             case /^updateLanguage#{.*}$/.test(key):
                 const {stickers} = require('../messages/sticker');
                 var cbData = JSON.parse(key.substr(15));
-                var response = await tgbot.updateChat(cbData.cid, {language: cbData.lang, status: 'listed'});
+                var response = await tgbot.updateChat(cbData.cid, {CLANGUAGE: cbData.lang, STATUS: 'listed'});
                 if(response){
                     var sharingLink='';
                     const chatDetails = await tgbot.getChatFromDB(cbData.cid);
-                    sharingLink = `${process.env.TGPAGELINK}?tgcontentid=${cbData.cid}&username=${(chatDetails['USERNAME'] || '')}`
+                    sharingLink = `${process.env.TGPAGELINK}?tgcontentid=${cbData.cid}&username=${(chatDetails.USERNAME || '')}`
 
                     //Prepare chat to send for moderation
-                    var message = `New chat\nLink: ${chatDetails['LINK']}\nCategory: ${CATEGORIES[chatDetails['CATEGORY']]}\nLanguage: ${chatDetails['CLANGUAGE']}\nSharing link: ${sharingLink}`;
+                    var message = `New chat\nLink: ${chatDetails.LINK}\nCategory: ${CATEGORIES[chatDetails.CATEGORY]}\nLanguage: ${chatDetails.CLANGUAGE}\nSharing link: ${sharingLink}`;
                     await bot.telegram.sendMessage(process.env.BOT_ADMIN, message, {
                         parse_mode: "HTML",
                         reply_markup: Markup.inlineKeyboard([
@@ -128,8 +128,8 @@ module.exports.handleCallback = async function (ctx, tgbot){
                         ]).reply_markup
                     });
 
-                    //remove langauge keyboard
-                    ctx.editMessageReplyMarkup(Markup.inlineKeyboard([[]]).reply_markup);
+                    //delete message
+                    await ctx.deleteMessage();
 
                     // Do not send confirmation message if chat listed by moderators
                     if(ctx.callbackQuery.from.id == process.env.BOT_ADMIN) return true;
@@ -158,7 +158,7 @@ module.exports.handleCallback = async function (ctx, tgbot){
                     if((tgbot.getChatFromDB(cbData.cid)).LISTERID != tgbot.user.TGID) return;
                 }
 
-                await tgbot.updateChat(cbData.cid, {status:'unlisted'});
+                await tgbot.updateChat(cbData.cid, {STATUS:'unlisted'});
                 await ctx.answerCbQuery('Chat removed from Telegram directory.');
                 ctx.editMessageReplyMarkup(Markup.inlineKeyboard([[]]).reply_markup);
             break
@@ -269,7 +269,7 @@ module.exports.handleCallback = async function (ctx, tgbot){
 
                 var cbData = JSON.parse(key.substr(9));
                 var chatDetails = await tgbot.getChatFromDB(cbData.cid);
-                sharingLink = `${process.env.TGPAGELINK}?tgcontentid=${cbData.cid}&username=${(chatDetails['USERNAME'] || '')}`;
+                sharingLink = `${process.env.TGPAGELINK}?tgcontentid=${cbData.cid}&username=${(chatDetails.USERNAME || '')}`;
                 
                 await tgbot.postLinkToReddit(
                     `${chatDetails.TITLE} · 👥 ${chatDetails.SUBSCOUNT || ''} · ${CATEGORIES[chatDetails.CATEGORY]}`,

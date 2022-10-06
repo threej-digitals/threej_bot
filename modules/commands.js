@@ -93,8 +93,7 @@ module.exports.handleCommands = function(update, tgbot){
                     }
 
                     //send chat details
-                    const {chatDetailsCard} = require('../cards/chatDetails');
-                    const {text, markup} = chatDetailsCard(chatDetails, tgbot);
+                    const {text, markup} = require('../cards/chatDetails').chatDetailsCard(chatDetails, tgbot);
                     return await ctx.reply(text,{
                         parse_mode: 'HTML',
                         reply_markup: Markup.inlineKeyboard(markup).reply_markup

@@ -3,6 +3,9 @@ const bot = new (require("telegraf").Telegraf)(process.env.BOT_TOKEN);
 const { Tgbot, CHATFLAG } = require('./modules/tgbot');
 
 const tgbot = new Tgbot(parseInt(process.env.BOT_ADMIN));
+// load required modules
+tgbot.updateAndGetChat = require('./modules/newChat').updateAndGetChat;
+const commands = require('./messages/commands').commands(tgbot.user.LANGCODE || 'en')[0];
 
 // Update chat flag when new ANONYMOUS vote received from poll
 bot.on('poll', async (ctx) => {
@@ -45,10 +48,6 @@ bot.use(async (ctx, next)=>{
     return await next();
 });
 
-// load required modules
-tgbot.updateAndGetChat = require('./modules/newChat').updateAndGetChat;
-const commands = require('./messages/commands').commands(tgbot.user.LANGCODE || 'en')[0];
-
 // handle bot commands
 bot.use(async (ctx, next)=>{
     if(ctx?.message?.entities && ctx.message.entities[0].type == 'bot_command'){
@@ -62,14 +61,19 @@ bot.on('my_chat_member', async (ctx) => {
     // bot removed from chat
     if(ctx.myChatMember.new_chat_member.status == 'left'){
         return;
+
+    // User blocked the bot update user status
     }else if(
         ctx.myChatMember.chat.type == 'private' &&
         ctx.myChatMember.new_chat_member.status == 'kicked' &&
         ctx.myChatMember.new_chat_member.user.username == ctx.me
     ){
-        // User blocked the bot update user status
         return await tgbot.updateUserPreference('blocked');
-    }else if(ctx.myChatMember.chat.type != 'private'){
+    //Bot added to chat
+    }else if(
+        ctx.myChatMember.chat.type != 'private' &&
+        ['administrator','member'].includes(ctx.myChatMember.new_chat_member.status)
+    ){
 
         const chatMember = await bot.telegram.getChatMember(ctx.myChatMember.chat.id, ctx.myChatMember.from.id)
         var chatDetails = {};
@@ -106,7 +110,7 @@ bot.on('callback_query',(ctx)=>{
 
 // handle inline queries
 bot.on('inline_query',(ctx)=>{
-    require('./modules/inlineQueryHandler').handleInlineQueries(ctx, bot, tgbot, Markup);
+    require('./modules/inlineQueryHandler').handleInlineQueries(ctx, tgbot);
 })
 
 bot.on('sticker',(ctx)=>{
@@ -141,7 +145,7 @@ bot.on('text', async (ctx)=>{
         if(username){
 
             const chatDetails = await tgbot.updateAndGetChat({username: username}, tgbot);
-            if(typeof chatDetails == 'string'){
+            if(typeof chatDetails == 'string' || chatDetails == false){
                 tgbot.logError('error while handling ' + JSON.stringify(ctx.update));
                 return await ctx.reply(chatDetails);
             }

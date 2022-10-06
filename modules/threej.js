@@ -40,6 +40,19 @@ class Threej{
         return await fs.writeFileSync(fileLocation, buffer);
     }
 
+    async getHTML(url){
+        const res = await axios({
+            url : url,
+            headers : {
+                "accept": "text/html application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+                "accept-encoding": "gzip, deflate, br",
+                "accept-language": "en-US;q=0.9"
+            },
+            gzip: true
+        })
+        return res;
+    }
+
     /**
      * 
      * @param {string} error 

@@ -24,7 +24,7 @@ module.exports.reportChat = async (chatDetails, userId) => {
                 `#${chatDetails.CID} Report ${chatDetails.USERNAME || chatDetails.TITLE}`,
                 flags
             );
-            await tgbot.updateChat(chatDetails.CID, {report: result.message_id});
+            await tgbot.updateChat(chatDetails.CID, {REPORT: result.message_id});
             await bot.telegram.forwardMessage(
                 userId,
                 process.env.MODSCHATID,

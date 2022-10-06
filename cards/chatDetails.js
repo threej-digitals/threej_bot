@@ -22,15 +22,16 @@ module.exports.chatDetailsCard = function (chatDetails, tgbot) {
     var keyboardArray = [];
 
     //Keyboard with general options for all user
-    keyboardArray.push(Markup.button.callback((chatDetails.UPVOTES || 0) + ' 👍', `👍#{"cid":${chatDetails.CID}}`));
-    keyboardArray.push(Markup.button.callback((chatDetails.DOWNVOTES || 0) + ' 👎', `👎#{"cid":${chatDetails.CID}}`));
+    if(chatDetails.STATUS == CHATSTATUS.listed){
+        keyboardArray.push(Markup.button.callback((chatDetails.UPVOTES || 0) + ' 👍', `👍#{"cid":${chatDetails.CID}}`));
+        keyboardArray.push(Markup.button.callback((chatDetails.DOWNVOTES || 0) + ' 👎', `👎#{"cid":${chatDetails.CID}}`));
+    }
 
     //Keyboard for user other then lister if lister is not creator
-    if(chatDetails.LISTERROLE !== MEMBERSTATUS['creator'] && tgbot.user.TUID !== chatDetails.LISTERID){
+    if(chatDetails.LISTERROLE != MEMBERSTATUS['creator'] && tgbot.user.TUID !== chatDetails.LISTERID){
 
         text += `<b><i>\n\n🛑 NOTE 🛑\nChat is already listed by other user. To claim this chat add the bot to your chat as admin by clicking on the "claim ownership" button below 👇</i></b>`;
-        var btn = Markup.button.url('👮 Claim ownership', `https://t.me/${process.env.BOT_USERNAME.substring(1)}?startgroup=claimchat`);
-        chatDetails.STATUS !== CHATSTATUS.listed ? keyboardArray = [btn] : keyboardArray.push(btn);
+        keyboardArray.push(Markup.button.url('👮 Claim ownership', `https://t.me/${process.env.BOT_USERNAME.substring(1)}?startgroup=claimchat`));
     }
 
     //keyboard for existing chats only visible to lister & bot admin
@@ -39,10 +40,12 @@ module.exports.chatDetailsCard = function (chatDetails, tgbot) {
         keyboardArray.push(Markup.button.callback('🗑 Remove chat', `unlist#{"cid":${chatDetails.CID}}`));
     }
 
-    keyboardArray.push(Markup.button.url('💬 Similar chats', `${process.env.TGPAGELINK}?tgcontentid=${chatDetails.CID}&username=${(chatDetails.USERNAME || '').replace('@','')}`));
-    keyboardArray.push(Markup.button.switchToChat('↗️ Share', `cid#${chatDetails.CID}`));
-    keyboardArray.push(Markup.button.callback('🚫 Report', `🚫#{"cid":${chatDetails.CID}}`));
-    keyboardArray.push(Markup.button.callback('❌ Cancel', '💠'));
+    if(chatDetails.STATUS == CHATSTATUS.listed){
+        keyboardArray.push(Markup.button.url('💬 Similar chats', `${process.env.TGPAGELINK}?tgcontentid=${chatDetails.CID}&username=${(chatDetails.USERNAME || '').replace('@','')}`));
+        keyboardArray.push(Markup.button.switchToChat('↗️ Share', `cid#${chatDetails.CID}`));
+        keyboardArray.push(Markup.button.callback('🚫 Report', `🚫#{"cid":${chatDetails.CID}}`));
+        keyboardArray.push(Markup.button.callback('❌ Cancel', '💠'));
+    }
 
     //keyboard for new chats only visible to lister
     if([CHATSTATUS.new, CHATSTATUS.unlisted].includes(parseInt(chatDetails.STATUS)) && tgbot.user.TUID == chatDetails.LISTERID){
