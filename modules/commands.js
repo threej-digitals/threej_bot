@@ -1,6 +1,8 @@
 const { Telegraf, Markup } = require('telegraf');
-const bot = new Telegraf(process.env.BOT_TOKEN);
+const { updateAndGetChat } = require('./newChat');
 const { reportChat } = require('./report');
+
+const bot = new Telegraf(process.env.BOT_TOKEN);
 const botUsername = process.env.BOT_USERNAME;
 
 module.exports.handleCommands = function(update, tgbot){
@@ -85,7 +87,7 @@ module.exports.handleCommands = function(update, tgbot){
                     payload[t[0]] = t[1]
                 });
                 if(payload['cid']){
-                    const chatDetails = await tgbot.getChatFromDB(payload['cid']);
+                    const chatDetails = await updateAndGetChat({id: payload.cid},tgbot);
 
                     // send poll to report a chat
                     if(payload['report']){
@@ -124,9 +126,38 @@ module.exports.handleCommands = function(update, tgbot){
         return true;
     })
 
+    // broadcast command only for admin
+    bot.command('broadcast', async (ctx, next)=>{
+        if(tgbot.user.TGID != process.env.BOT_ADMIN) return next();
+        if(!update.message.reply_to_message) return await ctx.reply('Broadcast message not found');
+        const msgId = update.message.reply_to_message.forward_from_message_id || update.message.reply_to_message.message_id;
+        const fromChatId = update.message.reply_to_message.forward_from_chat?.id || update.message.reply_to_message.chat.id;
+
+        var uid = 1;
+        var limit = 25;
+        const matches = update.message.text.match(/\/broadcast (\d+) (\d+)/);
+        if(matches != null){
+            uid = matches[1] || uid;
+            limit = matches[2] || limit;
+        }
+
+        await tgbot.broadcast([], async (id) => {
+            try {
+                await bot.telegram.forwardMessage(id, fromChatId, msgId, {disable_notification: true});
+            } catch (error) {
+                // update user preference if bot is blocked by user
+                if(error.message == '403: Forbidden: bot was blocked by the user'){
+                    tgbot.user.TGID = id;
+                    return await tgbot.updateUserPreference('blocked');
+                }
+                tgbot.logError(error);
+            }
+        })
+    })
+
     // statistics for admin
-    bot.command('stats', async (ctx)=>{
-        if(tgbot.user.TGID != process.env.BOT_ADMIN) return;
+    bot.command('stats', async (ctx, next)=>{
+        if(tgbot.user.TGID != process.env.BOT_ADMIN) return next();
         const stats = await tgbot.getBotStats();
         return await ctx.reply(`New users: ${stats.newUsers}\n\nTotal: ${stats.total}`);
     })

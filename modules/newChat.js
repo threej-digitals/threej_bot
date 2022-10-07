@@ -17,7 +17,14 @@ async function getChatDetails(username, tgbot, chatDetails = {}, update = false)
         try {
             if(typeof username == 'string') username = '@' + username;
 
-            const result = await bot.telegram.getChat(username);
+            var result = {};
+            try {
+                result = await bot.telegram.getChat(username);
+            } catch (error) {
+                if(typeof username == 'string' && chatDetails.CHATID < 0)
+                    result = await bot.telegram.getChat(chatDetails.CHATID);
+                else throw error;
+            }
 
             var chatDetails = tgbot.chatDetailsFormat;
             chatDetails.CHATID = result.id;
@@ -82,7 +89,15 @@ module.exports.updateAndGetChat = async (chat, tgbot, listerRole = 'member') => 
         //update chat if 24hr passed
         if((Date.now()/1000 - chatDetails.CUPDATE) > 86400){
             var chatId = chatDetails.CID;
-            chatDetails = getChatDetails(chat.username || chat.id, tgbot, chatDetails, true);
+            chatDetails = await getChatDetails(chat.username || chat.id, tgbot, chatDetails, true);
+
+            // Unlist dead chats
+            if(chatDetails == 'Chat not found!'){
+                await tgbot.updateChat(chatId, {
+                    STATUS: 'unlisted'
+                });
+                return chatDetails;
+            }
 
             //Get chat id if not available
             if(chatDetails.CHATID > -2 && typeof chat.id != 'undefined'){

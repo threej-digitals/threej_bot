@@ -166,6 +166,10 @@ class Threej{
         }
     }
 
+    async sleep(ms){
+        new Promise(r => setTimeout(r, ms));
+    }
+
     toCamelCase(text){
         if(typeof text != 'string') return text;
         var str = text.toLowerCase();

@@ -55,6 +55,7 @@ class Tgbot extends Threej{
 
         this.stickers = require('../messages/sticker').stickers;
         this.primaryMenu = require('../keyboards/primaryMenu').menu;
+        this.broadcast = require('./broadcast').broadcast;
         this.user = {};
         this.chatDetails = {};
         this.chatDetailsFormat = {
@@ -457,8 +458,6 @@ class Tgbot extends Threej{
     }
 
     /**
-     * 
-     * @param {number} userId 
      * @param {string} preferences - send 'blocked' or 'noupdates'
      * @returns 
      */
@@ -467,11 +466,11 @@ class Tgbot extends Threej{
 
         const sql = `UPDATE ?? SET 
             PREFERENCES = ?
-            WHERE TUID = ?`;
+            WHERE TGID = ?`;
         const values = [
             process.env.USERSTABLE,
             USERPREFERENCES[preferences.toUpperCase()] || 1,
-            this.user.TUID
+            this.user.TGID
         ];
         try {
             return await this.query(sql, values);
