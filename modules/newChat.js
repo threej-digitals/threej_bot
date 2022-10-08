@@ -47,6 +47,7 @@ async function getChatDetails(username, tgbot, chatDetails = {}, update = false)
             return 'Chat not found!';
         }
     }
+    chatDetails.PHOTO = chatDetails.PHOTO.replace(process.env.ABS_HOMEPATH,'');
     return chatDetails;
 }
 
@@ -76,7 +77,6 @@ module.exports.updateAndGetChat = async (chat, tgbot, listerRole = 'member') => 
             }
 
             //-----Store chat details to DB------//
-            chatDetails.PHOTO = chatDetails.PHOTO.replace(process.env.ABS_HOMEPATH,'');
             const response = await tgbot.newChat(chatDetails, listerRole);
             if(response && response.affectedRows){
                 return await tgbot.getChatFromDB(chatDetails.USERNAME || chatDetails.CHATID);
@@ -108,9 +108,8 @@ module.exports.updateAndGetChat = async (chat, tgbot, listerRole = 'member') => 
             }
 
             //update chat with new details
-            chatDetails
             await tgbot.updateChat(chatId, chatDetails);
-        
+            chatDetails = await tgbot.getChatFromDB(chatId);
         }else if(listerRole != 'member' && chatDetails.LISTERROLE != MEMBERSTATUS['creator']){
             // update lister role
             await tgbot.updateChat(chatDetails.CID, {

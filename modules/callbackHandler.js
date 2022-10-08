@@ -4,7 +4,7 @@ const bot = new Telegraf(process.env.BOT_TOKEN);
 const CATEGORIES=["🦁 Animals & Pets","🎎 Anime","🎨 Art & Paintings","📚 Books","🏎 Cars","💼 Career","💃🏼 Celebrity","👨‍👨‍👧‍👦 Community","⛓ Cryptocurrency","👩‍❤️‍👨 Dating","🎓 Educational","🎭 Entertainment","🧐 Facts","💰 Finance","😂 Funny","🎮 Gaming","🃏 GIFs","💻 Hacking","👩‍⚕️ Health","🧛 Horror","🧠 Knowledge","🔮 Life Hacks","💅🏻 Lifestyle","😂 Memes","🎬 Movies","🌞 Motivational","🏕 Nature","📰 News","🤵🏻 Political","🙋🏼 Personal","🖼 Photography","🏋️ Productive","💻 Programming","🔗 Promotion","🌐 Proxy","🗺 Regional","🥰 Relationship","🔬 Science","🎧 Song","📱 Social","🛒 Shopping","🕉 Spiritual","🏀 Sports","🚀 Startup","🏙 Stickers","📈 Stocks","🤴 Stories","📲 Technical","📨 Telegram","💭 Thoughts","💫 Tips & tricks","✈️ Travelling","🧵 Utility","📹 Videos","🎲 Others"];
 const LANGUAGES=[{'ar' : 'اللغة العربية'},{ 'bn' : 'বাংলা'},{  'cn' : '中国人'},{'de' : 'Deutsche'},{ 'en' : 'English'},{ 'es' : 'Español'},{ 'fr' : 'Français'},{'gu' : 'ગુજરાતી'},{ 'hi' : 'हिंदी'},{ 'id' : 'Indonesian'},{ 'it' : 'Italiano'},{ 'ja' : '日本語'},{ 'kn' : 'ಕನ್ನಡ'},{ 'ko' : '한국어'},{ 'ky' : 'Кыргызча'},{ 'la' : 'Latine'},{ 'ms' : 'Melayu'},{ 'ml' : 'മലയാളം'},{ 'mr' : 'मराठी'},{ 'ne' : 'नेपाली'},{ 'nl' : 'Deutsch'},{ 'no' : 'norsk'},{ 'pa' : 'ਪੰਜਾਬੀ'},{ 'fa' : 'فارسی'},{ 'pt' : 'Português'},{ 'ru' : 'Pусский'},{ 'sa' : 'संस्कृत'},{ 'sv' : 'svenska'},{ 'ta' : 'தமிழ்'},{ 'te' : 'తెలుగు'},{ 'th' : 'ภาษาไทย'},{ 'tr' : 'Türk'},{ 'uk' : 'Український'},{ 'ur' : 'اردو'},{ 'uz' : 'O\'zbek'},{ 'vi' : 'tiếng Việt'},{ 'mt' : 'multiple'},{'' : 'Other'}];
 
-module.exports.handleCallback = async function (ctx, tgbot){
+module.exports.handleCallback = async (ctx, tgbot) => {
     const commands = require('../messages/commands').commands(tgbot.user.LANGCODE || 'en')[0];
     const key = ctx.callbackQuery.data || '';
 
@@ -56,30 +56,25 @@ module.exports.handleCallback = async function (ctx, tgbot){
             break;
 
             //Cancel previous actions & show Main menu
-            case '💠' === key:9
-                const {menu} = require('../keyboards/primaryMenu');
+            case '💠' === key:
                 try {
-                    await ctx.editMessageText(commands['start'],{
-                        parse_mode: 'HTML',
-                        disable_web_page_preview:true,
-                        reply_markup : Markup.inlineKeyboard(menu(Markup)).reply_markup
-                    });
+                    await ctx.editMessageText(
+                        commands['start'],
+                        tgbot.keyboards.primaryMenu(Markup)
+                    );
                 } catch (error) {
                     await ctx.deleteMessage();
-                    await ctx.reply(commands['start'],{
-                        parse_mode: 'HTML',
-                        disable_web_page_preview:true,
-                        reply_markup : Markup.inlineKeyboard(menu(Markup)).reply_markup
-                    });
+                    await ctx.reply(
+                        commands['start'],
+                        tgbot.keyboards.primaryMenu(Markup)
+                    );
                 }
-                break;
+            break;
 
             //Claim ownership
             case '👮' === key:
                 await ctx.answerCbQuery(commands['claimOwnership'], {show_alert:true});
             break;
-
-            //Update chat details
 
             //Send category keyboard
             case /^chooseCategory#{.*}$/.test(key):
@@ -92,7 +87,7 @@ module.exports.handleCallback = async function (ctx, tgbot){
 
                 await ctx.answerCbQuery(commands['chooseCategory']);
                 await ctx.editMessageReplyMarkup(Markup.inlineKeyboard(category(cid, Markup, CATEGORIES)).reply_markup);
-                break;
+            break;
 
             //update category and send language keyboard
             case /^updateCategory#{.*}$/.test(key):
@@ -105,7 +100,7 @@ module.exports.handleCallback = async function (ctx, tgbot){
                 }else{
                     ctx.sendMessage(commands['internalError']);
                 }
-                break;
+            break;
 
             //update language, send chat for moderation and reply user with sharing link
             case /^updateLanguage#{.*}$/.test(key):
@@ -140,9 +135,9 @@ module.exports.handleCallback = async function (ctx, tgbot){
                     return await ctx.sendMessage(message, {
                         parse_mode:'HTML',
                         reply_markup: Markup.inlineKeyboard([
-                            [Markup.button.switchToChat('⭐️ Ask subsribers to rate this chat',`cid#${chatDetails.CID}`)],
-                            [Markup.button.callback('📣 Promote chat for free.',`📣#{"cid":${chatDetails.CID}}`)],
-                            [Markup.button.callback('🗑 Remove this chat from Telegram Directory', `unlist#{"cid":${chatDetails.CID}}`)]
+                            [Markup.button.switchToChat(commands['rateChat'],`cid#${chatDetails.CID}`)],
+                            [Markup.button.callback(commands['promoteChat'],`📣#{"cid":${chatDetails.CID}}`)],
+                            [Markup.button.callback(commands['removeChat'], `unlist#{"cid":${chatDetails.CID}}`)]
                         ]).reply_markup
                     });
                 }
@@ -152,21 +147,22 @@ module.exports.handleCallback = async function (ctx, tgbot){
             //Remove/Unlist the chat
             case /^unlist#{.*}$/.test(key):
                 var cbData = JSON.parse(key.substr(7));
-                
+
                 //No need to verify if requested by moderator
                 if(tgbot.user.TGID != process.env.BOT_ADMIN){
                     if((tgbot.getChatFromDB(cbData.cid)).LISTERID != tgbot.user.TGID) return;
                 }
 
                 await tgbot.updateChat(cbData.cid, {STATUS:'unlisted'});
-                await ctx.answerCbQuery('Chat removed from Telegram directory.');
+                await ctx.answerCbQuery(commands['chatRemoved']);
                 ctx.editMessageReplyMarkup(Markup.inlineKeyboard([[]]).reply_markup);
             break
-            
+
             //Handle votes
             case /^👍#{.*}$/.test(key) || /^👎#{.*}$/.test(key) || /"action":"(up|down)"/.test(key):
                 var cbData = {};
                 var action = '';
+
                 //compatibility for prev version
                 if(/"action":"(up|down)"/.test(key)){
                     cbData = JSON.parse(key);
@@ -181,17 +177,15 @@ module.exports.handleCallback = async function (ctx, tgbot){
                 var ik = [];
                 if(ctx.callbackQuery.message){
                     ik = ctx.callbackQuery.message.reply_markup.inline_keyboard;
-                    //update counters in inline keyboard
-                    for (const key in ik) {
-                        for (const key2 in ik[key]) {
-                            if(/.*👍$/.test(ik[key][key2].text)){
-                                ik[key][key2].text = chatDetails.UPVOTES + ' 👍';
-                            }
-                            if(/.*👎$/.test(ik[key][key2].text)){
-                                ik[key][key2].text = chatDetails.DOWNVOTES + ' 👎';
-                            }
-                        }
-                    }
+                    //update vote counters of inline keyboard
+                    ik = ik.map(rows => {
+                        return rows.map(row => {
+                            row.text = /.*👍$/.test(row.text) ? chatDetails.UPVOTES + ' 👍'
+                            : /.*👎$/.test(row.text) ? chatDetails.DOWNVOTES + ' 👎'
+                            : row.text;
+                            return row;
+                        })
+                    });
                 }else{
                     ik = [
                         [
@@ -202,11 +196,11 @@ module.exports.handleCallback = async function (ctx, tgbot){
                             Markup.button.url('👤 Subscribe', chatDetails.LINK || 'https://telegram.me/' + chatDetails.USERNAME),
                             Markup.button.callback('🚫 Report', `🚫#{"cid":${chatDetails.CID}}`)
                         ]
-                    ]
+                    ];
                 }
                 await ctx.editMessageReplyMarkup(Markup.inlineKeyboard(ik).reply_markup);
             break;
-            
+
             //Mark chat as NSFW
             case /^🔞#{.*}$/.test(key):
                 var cbData = JSON.parse(key.substr(3));
@@ -270,7 +264,7 @@ module.exports.handleCallback = async function (ctx, tgbot){
                 var cbData = JSON.parse(key.substr(9));
                 var chatDetails = await tgbot.getChatFromDB(cbData.cid);
                 sharingLink = `${process.env.TGPAGELINK}?tgcontentid=${cbData.cid}&username=${(chatDetails.USERNAME || '')}`;
-                
+
                 await tgbot.postLinkToReddit(
                     `${chatDetails.TITLE} · 👥 ${chatDetails.SUBSCOUNT || ''} · ${CATEGORIES[chatDetails.CATEGORY]}`,
                     sharingLink

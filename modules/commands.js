@@ -1,6 +1,7 @@
 const { Telegraf, Markup } = require('telegraf');
 const { updateAndGetChat } = require('./newChat');
 const { reportChat } = require('./report');
+const { USERPREFERENCES } = require('./tgbot');
 
 const bot = new Telegraf(process.env.BOT_TOKEN);
 const botUsername = process.env.BOT_USERNAME;
@@ -116,13 +117,10 @@ module.exports.handleCommands = function(update, tgbot){
         );
 
         //send menu for interaction
-        await ctx.reply(commands['start'] ,{
-            parse_mode: 'HTML',
-            disable_web_page_preview:true,
-            reply_markup : Markup.inlineKeyboard(
-                tgbot.primaryMenu(Markup)
-            ).reply_markup
-        });
+        await ctx.reply(
+            commands['start'],
+            tgbot.keyboards.primaryMenu(Markup)
+        );
         return true;
     })
 
@@ -130,6 +128,8 @@ module.exports.handleCommands = function(update, tgbot){
     bot.command('broadcast', async (ctx, next)=>{
         if(tgbot.user.TGID != process.env.BOT_ADMIN) return next();
         if(!update.message.reply_to_message) return await ctx.reply('Broadcast message not found');
+
+        //get broadcast message id
         const msgId = update.message.reply_to_message.forward_from_message_id || update.message.reply_to_message.message_id;
         const fromChatId = update.message.reply_to_message.forward_from_chat?.id || update.message.reply_to_message.chat.id;
 
@@ -141,18 +141,34 @@ module.exports.handleCommands = function(update, tgbot){
             limit = matches[2] || limit;
         }
 
-        await tgbot.broadcast([], async (id) => {
-            try {
-                await bot.telegram.forwardMessage(id, fromChatId, msgId, {disable_notification: true});
-            } catch (error) {
-                // update user preference if bot is blocked by user
-                if(error.message == '403: Forbidden: bot was blocked by the user'){
-                    tgbot.user.TGID = id;
-                    return await tgbot.updateUserPreference('blocked');
-                }
-                tgbot.logError(error);
-            }
+        // get users list and filter them according to their preference
+        const users = await tgbot.getUsers(uid, limit);
+        uid = users.at(-1).TUID;
+        users = users.map(user => {
+            if(!(
+                user.PREFERENCES == USERPREFERENCES['BLOCKED'] ||
+                user.PREFERENCES == USERPREFERENCES['NOUPDATES']
+            )) return user.TGID;
         })
+
+
+        await tgbot.broadcast(
+            users,
+            async (id) => {
+                try {
+                    await bot.telegram.forwardMessage(id, fromChatId, msgId, {disable_notification: true});
+                } catch (error) {
+                    // update user preference if bot is blocked by user
+                    if(error.message == '403: Forbidden: bot was blocked by the user'){
+                        tgbot.user.TGID = id;
+                        return await tgbot.updateUserPreference('blocked');
+                    }
+                    tgbot.logError(error);
+                }
+            }
+        )
+
+        await ctx.reply(`Message broadcasted to ${users.length || 0} users and last UID was ${uid}`)
     })
 
     // statistics for admin

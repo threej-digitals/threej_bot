@@ -43,40 +43,59 @@ const USERPREFERENCES = {
 /**
  * Flags for reporting contents
  */
-const CHATFLAG = ['SFW','Copyright','NSFW','Spam','Scam','Illegal Activities','Violence','Child Abuse','Chat is Dead'];
+const CHATFLAG = ['SFW','Copyright','NSFW','Spam','Scam','Illegal Activities','Violence','Child Abuse','Dead chat'];
 
 class Tgbot extends Threej{
+
+    // object to store chatDetails
+    chatDetails = {};
+
+    // Chat details schema
+    chatDetailsFormat = {
+        'LISTERID' : 0,
+        'LISTERROLE' : 0,
+        'CHATID' : false,
+        'USERNAME' : false,
+        'TITLE' : '',
+        'DESCRIPTION' : '',
+        'LINK': '',
+        'PHOTO' : '',
+        'CTYPE': '',
+        'STATUS': 0,
+        'POSTCOUNT':false,
+        'VIEWS' : false,
+        'SUBSCOUNT' : false,
+        'PICSCOUNT' : false,
+        'VIDEOSCOUNT' : false,
+        'LINKSCOUNT' : false,
+        'FILECOUNT' : false,
+    };
+
+    // Inline keyboards
+    keyboards = {
+        primaryMenu : require('../keyboards/primaryMenu').menu
+    };
+
+    // Categorized stickers object
+    stickers = require('../messages/sticker').stickers;
+
+    // object to store user details when user is logged In
+    user = {};
+
+    // Broadcast function
+    broadcast = require('./broadcast').broadcast;
+
+    // Get new chat or update existing chat
+    updateAndGetChat = require('./newChat').updateAndGetChat;
+
+    // constructor
     constructor(adminId){
         super()
 
         if(typeof adminId != 'number')
-        throw new Error('Invalid adminId');
-        this.admin = adminId;
+            throw new Error('Invalid adminId');
 
-        this.stickers = require('../messages/sticker').stickers;
-        this.primaryMenu = require('../keyboards/primaryMenu').menu;
-        this.broadcast = require('./broadcast').broadcast;
-        this.user = {};
-        this.chatDetails = {};
-        this.chatDetailsFormat = {
-            'LISTERID' : -1,
-            'LISTERROLE' : -1,
-            'CHATID' : false,
-            'USERNAME' : false,
-            'TITLE' : '',
-            'DESCRIPTION' : '',
-            'LINK': '',
-            'PHOTO' : '',
-            'CTYPE': '',
-            'STATUS': 0,
-            'POSTCOUNT':false,
-            'VIEWS' : false,
-            'SUBSCOUNT' : false,
-            'PICSCOUNT' : false,
-            'VIDEOSCOUNT' : false,
-            'LINKSCOUNT' : false,
-            'FILECOUNT' : false,
-        };
+        this.admin = adminId;
     }
 
     async getBotStats(){
@@ -106,6 +125,20 @@ class Tgbot extends Threej{
             [process.env.CHATSTABLE, column, CIDorUsername]
         );
         return this.chatDetails = result[0];
+    }
+
+    /**
+     * Get list of user details from db
+     * @param {number} offset userId as offset
+     * @param {number} limit number of users to return
+     */
+    async getUsers(offset, limit){
+        return await this.query('SELECT * FROM ?? WHERE TUID > ? LIMIT ?',
+        [
+            process.env.USERSTABLE,
+            offset || 1,
+            limit || 25
+        ])
     }
 
     /**
@@ -480,4 +513,4 @@ class Tgbot extends Threej{
         }
     }
 }
-module.exports = { Tgbot, CHATSTATUS, MEMBERSTATUS, CHATFLAG};
+module.exports = { Tgbot, CHATSTATUS, MEMBERSTATUS, CHATFLAG, USERPREFERENCES};

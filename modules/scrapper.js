@@ -27,7 +27,6 @@ async function scrapChat(username, chatDetailsFormat) {
  */
 function scrapChatDetailsAndViews(html, username, chatDetailsFormat){
     try {
-        // console.log(res)
         const $ = cheerio.load(html);
 
         let chatDetails = chatDetailsFormat;
@@ -92,7 +91,6 @@ function scrapChatDetailsAndViews(html, username, chatDetailsFormat){
  */
 function scrapChatDetails(html, username, chatDetailsFormat){
     try {
-        // console.log(res)
         const $ = cheerio.load(html);
 
         let chatDetails = chatDetailsFormat;
