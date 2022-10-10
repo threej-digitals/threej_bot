@@ -1,7 +1,7 @@
 const { Telegraf, Markup } = require('telegraf');
+const { CATEGORIES } = require('./tgbot');
 const bot = new Telegraf(process.env.BOT_TOKEN);
 
-const CATEGORIES=["🦁 Animals & Pets","🎎 Anime","🎨 Art & Paintings","📚 Books","🏎 Cars","💼 Career","💃🏼 Celebrity","👨‍👨‍👧‍👦 Community","⛓ Cryptocurrency","👩‍❤️‍👨 Dating","🎓 Educational","🎭 Entertainment","🧐 Facts","💰 Finance","😂 Funny","🎮 Gaming","🃏 GIFs","💻 Hacking","👩‍⚕️ Health","🧛 Horror","🧠 Knowledge","🔮 Life Hacks","💅🏻 Lifestyle","😂 Memes","🎬 Movies","🌞 Motivational","🏕 Nature","📰 News","🤵🏻 Political","🙋🏼 Personal","🖼 Photography","🏋️ Productive","💻 Programming","🔗 Promotion","🌐 Proxy","🗺 Regional","🥰 Relationship","🔬 Science","🎧 Song","📱 Social","🛒 Shopping","🕉 Spiritual","🏀 Sports","🚀 Startup","🏙 Stickers","📈 Stocks","🤴 Stories","📲 Technical","📨 Telegram","💭 Thoughts","💫 Tips & tricks","✈️ Travelling","🧵 Utility","📹 Videos","🎲 Others"];
 const LANGUAGES=[{'ar' : 'اللغة العربية'},{ 'bn' : 'বাংলা'},{  'cn' : '中国人'},{'de' : 'Deutsche'},{ 'en' : 'English'},{ 'es' : 'Español'},{ 'fr' : 'Français'},{'gu' : 'ગુજરાતી'},{ 'hi' : 'हिंदी'},{ 'id' : 'Indonesian'},{ 'it' : 'Italiano'},{ 'ja' : '日本語'},{ 'kn' : 'ಕನ್ನಡ'},{ 'ko' : '한국어'},{ 'ky' : 'Кыргызча'},{ 'la' : 'Latine'},{ 'ms' : 'Melayu'},{ 'ml' : 'മലയാളം'},{ 'mr' : 'मराठी'},{ 'ne' : 'नेपाली'},{ 'nl' : 'Deutsch'},{ 'no' : 'norsk'},{ 'pa' : 'ਪੰਜਾਬੀ'},{ 'fa' : 'فارسی'},{ 'pt' : 'Português'},{ 'ru' : 'Pусский'},{ 'sa' : 'संस्कृत'},{ 'sv' : 'svenska'},{ 'ta' : 'தமிழ்'},{ 'te' : 'తెలుగు'},{ 'th' : 'ภาษาไทย'},{ 'tr' : 'Türk'},{ 'uk' : 'Український'},{ 'ur' : 'اردو'},{ 'uz' : 'O\'zbek'},{ 'vi' : 'tiếng Việt'},{ 'mt' : 'multiple'},{'' : 'Other'}];
 
 module.exports.handleCallback = async (ctx, tgbot) => {
@@ -14,7 +14,9 @@ module.exports.handleCallback = async (ctx, tgbot) => {
 
             //List chat
             case '💬' === key:
-                await ctx.reply(commands['addNewChat']);
+                await ctx.editMessageText(commands['addNewChat'], {
+                    reply_markup : Markup.inlineKeyboard(commands.reply_markup['addNewChat']).reply_markup
+                });
             break;
             //list stickers
             case '🏞' === key:
@@ -36,7 +38,6 @@ module.exports.handleCallback = async (ctx, tgbot) => {
                     ]
                 ).reply_markup);
             break;
-
             //FAQ's
             case '❓' === key:
                 await ctx.editMessageText(
@@ -54,7 +55,6 @@ module.exports.handleCallback = async (ctx, tgbot) => {
                     }
                 );
             break;
-
             //Cancel previous actions & show Main menu
             case '💠' === key:
                 try {
@@ -70,7 +70,10 @@ module.exports.handleCallback = async (ctx, tgbot) => {
                     );
                 }
             break;
-
+            // show secondary menu
+            case '💠💠' === key:
+                await ctx.editMessageReplyMarkup(tgbot.keyboards.secondaryMenu(Markup));
+            break;
             //Claim ownership
             case '👮' === key:
                 await ctx.answerCbQuery(commands['claimOwnership'], {show_alert:true});
@@ -78,7 +81,6 @@ module.exports.handleCallback = async (ctx, tgbot) => {
 
             //Send category keyboard
             case /^chooseCategory#{.*}$/.test(key):
-                const {category} = require('../keyboards/category');
                 const cid = JSON.parse(key.substr(15)).cid;
                 var chatDetails = await tgbot.getChatFromDB(cid);
 
@@ -86,17 +88,28 @@ module.exports.handleCallback = async (ctx, tgbot) => {
                 if(chatDetails.LISTERID != tgbot.user.TUID && tgbot.user.TGID != process.env.BOT_ADMIN) return;
 
                 await ctx.answerCbQuery(commands['chooseCategory']);
-                await ctx.editMessageReplyMarkup(Markup.inlineKeyboard(category(cid, Markup, CATEGORIES)).reply_markup);
+                await ctx.editMessageReplyMarkup(
+                    tgbot.keyboards.category(cid, CATEGORIES)
+                );
             break;
 
             //update category and send language keyboard
             case /^updateCategory#{.*}$/.test(key):
-                const {language} = require('../keyboards/language');
                 var cbData = JSON.parse(key.substr(15));
-                var response = await tgbot.updateChat(cbData.cid, {CATEGORY:cbData.cat});
+
+                if(cbData.cid){
+                    var response = await tgbot.updateChat(cbData.cid, {CATEGORY:cbData.cat});
+                }else if(cbData.setId){
+                    var response = await tgbot.updateSticker(cbData.setId, {CATEGORY:cbData.cat});
+                }
+
                 if(response){
                     await ctx.answerCbQuery(commands['chooseLanguage']);
-                    ctx.editMessageReplyMarkup(Markup.inlineKeyboard(language(cbData.cid, Markup, LANGUAGES)).reply_markup);
+                    ctx.editMessageReplyMarkup(
+                        Markup.inlineKeyboard(
+                            tgbot.keyboards.language(cbData.cid || cbData.setId, LANGUAGES, true)
+                        ).reply_markup
+                    );
                 }else{
                     ctx.sendMessage(commands['internalError']);
                 }
@@ -104,42 +117,18 @@ module.exports.handleCallback = async (ctx, tgbot) => {
 
             //update language, send chat for moderation and reply user with sharing link
             case /^updateLanguage#{.*}$/.test(key):
-                const {stickers} = require('../messages/sticker');
                 var cbData = JSON.parse(key.substr(15));
-                var response = await tgbot.updateChat(cbData.cid, {CLANGUAGE: cbData.lang, STATUS: 'listed'});
-                if(response){
-                    var sharingLink='';
-                    const chatDetails = await tgbot.getChatFromDB(cbData.cid);
-                    sharingLink = `${process.env.TGPAGELINK}?tgcontentid=${cbData.cid}&username=${(chatDetails.USERNAME || '')}`
 
-                    //Prepare chat to send for moderation
-                    var message = `New chat\nLink: ${chatDetails.LINK}\nCategory: ${CATEGORIES[chatDetails.CATEGORY]}\nLanguage: ${chatDetails.CLANGUAGE}\nSharing link: ${sharingLink}`;
-                    await bot.telegram.sendMessage(process.env.BOT_ADMIN, message, {
-                        parse_mode: "HTML",
-                        reply_markup: Markup.inlineKeyboard([
-                            [Markup.button.callback('Change category & language',`chooseCategory#{"cid":${cbData.cid}}`)],
-                            [Markup.button.callback('Remove this chat',`unlist#{"cid":${cbData.cid}}`)],
-                            [Markup.button.callback('🔞 Mark as NSFW',`🔞#{"cid":${cbData.cid}}`)],
-                        ]).reply_markup
-                    });
-
-                    //delete message
-                    await ctx.deleteMessage();
-
-                    // Do not send confirmation message if chat listed by moderators
-                    if(ctx.callbackQuery.from.id == process.env.BOT_ADMIN) return true;
-
-                    // Confirmation message reply with sticker & text
-                    await ctx.sendSticker(stickers.celebration[tgbot.randomInt(stickers.celebration.length-1)]);
-                    message = `<b>Chat listed successfully!</b>\nSharing link: ${sharingLink}\n\n<code><i>Disclaimer:\nChat is sent for moderation and can be removed if any discrepancies found.</i></code>`;
-                    return await ctx.sendMessage(message, {
-                        parse_mode:'HTML',
-                        reply_markup: Markup.inlineKeyboard([
-                            [Markup.button.switchToChat(commands['rateChat'],`cid#${chatDetails.CID}`)],
-                            [Markup.button.callback(commands['promoteChat'],`📣#{"cid":${chatDetails.CID}}`)],
-                            [Markup.button.callback(commands['removeChat'], `unlist#{"cid":${chatDetails.CID}}`)]
-                        ]).reply_markup
-                    });
+                if(cbData.cid){
+                    var response = await tgbot.updateChat(cbData.cid, {CLANGUAGE: cbData.lang, STATUS: 'listed'});
+                    if(response){
+                        sendChatConfirmation(cbData, ctx, tgbot);
+                    }
+                }else if(cbData.setId){
+                    var response = await tgbot.updateSticker(cbData.setId, {LANGUAGE: cbData.lang});
+                    if(response){
+                        sendStickerConfirmation(cbData, ctx, tgbot);
+                    }
                 }
                 throw new Error(response);
             break;
@@ -207,7 +196,11 @@ module.exports.handleCallback = async (ctx, tgbot) => {
 
                 if(tgbot.user.TGID != process.env.BOT_ADMIN) return;
                 //update flag
-                await tgbot.updateChatFlag(cbData.cid, 'NSFW');
+                if("cid" in cbData){
+                    await tgbot.updateChatFlag(cbData.cid, 'NSFW');
+                }else if("setId" in cbData){
+                    await tgbot.updateSticker(cbData.setId, {FLAG: 'NSFW'});
+                }
 
                 //update reply markup
                 var ik = ctx.callbackQuery.message.reply_markup.inline_keyboard;
@@ -282,4 +275,82 @@ module.exports.handleCallback = async (ctx, tgbot) => {
             tgbot.logError(error + JSON.stringify(ctx.update));
     }
     return true;
+}
+
+async function sendChatConfirmation(cbData, ctx, tgbot){
+    var sharingLink='';
+    const chatDetails = await tgbot.getChatFromDB(cbData.cid);
+    sharingLink = `${process.env.TGPAGELINK}?tgcontentid=${cbData.cid}&username=${(chatDetails.USERNAME || '')}`;
+
+    //Prepare chat to send for moderation
+    var message = `New chat\nLink: ${chatDetails.LINK}\nCategory: ${CATEGORIES[chatDetails.CATEGORY]}\nLanguage: ${chatDetails.CLANGUAGE}\nSharing link: ${sharingLink}`;
+    await bot.telegram.sendMessage(process.env.BOT_ADMIN, message, {
+        parse_mode: "HTML",
+        reply_markup: Markup.inlineKeyboard([
+            [Markup.button.callback('Change category & language',`chooseCategory#{"cid":${cbData.cid}}`)],
+            [Markup.button.callback('Remove this chat',`unlist#{"cid":${cbData.cid}}`)],
+            [Markup.button.callback('🔞 Mark as NSFW',`🔞#{"cid":${cbData.cid}}`)],
+        ]).reply_markup
+    });
+
+    //delete message
+    await ctx.deleteMessage();
+
+    // Do not send confirmation message if chat listed by moderators
+    if(ctx.callbackQuery.from.id == process.env.BOT_ADMIN) return true;
+
+    // Confirmation message reply with sticker & text
+    const stickers = tgbot.stickers.celebration;
+    await ctx.sendSticker(stickers[
+        tgbot.randomInt(stickers.length-1)
+    ]);
+
+    message = `<b>Chat listed successfully!</b>\nSharing link: ${sharingLink}\n\n<code><i>Disclaimer:\nChat is sent for moderation and can be removed if any discrepancies found.</i></code>`;
+    return await ctx.sendMessage(message, {
+        parse_mode:'HTML',
+        reply_markup: Markup.inlineKeyboard([
+            [Markup.button.switchToChat(commands['rateChat'],`cid#${chatDetails.CID}`)],
+            [Markup.button.callback(commands['promoteChat'],`📣#{"cid":${chatDetails.CID}}`)],
+            [Markup.button.callback(commands['removeChat'], `unlist#{"cid":${chatDetails.CID}}`)]
+        ]).reply_markup
+    });
+}
+
+async function sendStickerConfirmation(cbData, ctx, tgbot){
+    var sharingLink='';
+    const stickerSet = (await tgbot.searchStickerSet(cbData.setId))[0];
+    sharingLink = `${process.env.HOMEURI}telegram-sticker?setid=${cbData.setId}&name=${(stickerSet.NAME || '')}`;
+
+    //delete message
+    await ctx.deleteMessage();
+
+    //Prepare chat to send for moderation
+    var message = `New sticker\nLink: t.me/addstickers/${stickerSet.NAME}\nCategory: ${CATEGORIES[stickerSet.CATEGORY]}\nLanguage: ${stickerSet.LANGUAGE}\nSharing link: ${sharingLink}`;
+    await bot.telegram.sendMessage(process.env.BOT_ADMIN, message, {
+        parse_mode: "HTML",
+        reply_markup: Markup.inlineKeyboard([
+            [Markup.button.callback('Change category & language',`chooseCategory#{"setId":${cbData.setId}}`)],
+            [Markup.button.callback('Remove this sticker',`unlist#{"setId":${cbData.setId}}`)],
+            [Markup.button.callback('🔞 Mark as NSFW',`🔞#{"setId":${cbData.setId}}`)],
+        ]).reply_markup
+    });
+
+    //promote sticker to @sticker3j channel
+    try {
+        const response = await bot.telegram.sendSticker(
+            process.env.STICKERSWORLDCHANNEL,
+            ctx.callbackQuery.message.sticker.file_id
+        );
+        if(response.message_id){
+            await tgbot.updateSticker(cbData.setId, {POSTID: response.message_id});
+        }
+    } catch (error) {
+        tgbot.logError(error);
+    }
+
+    // confirmation message for user
+    message = `<b>Sticker added successfully and shared to @stickers3j channel.</b>\nSharing link: ${sharingLink}\n\n<code><i>Disclaimer:\nSticker is sent for moderation and can be removed if any discrepancies found.</i></code>`;
+    return await ctx.sendMessage(message, {
+        parse_mode:'HTML'
+    });
 }

@@ -23,14 +23,20 @@ const messages = {
         rateChat : `⭐️ Ask subsribers to rate this chat`,
         removeChat: `🗑 Remove this chat from Telegram Directory`,
         start : `Add or explore Telegram chats available in the <a href="${process.env.TGPAGELINK}">Telegram Directory</a>\n\nSubscribe to @directorygram and @threej_in`,
+        stickerListingFailed : `Sticker listing failed. Please report this issue to our support chat @threej_discuss`,
         unknownCommand : `Unknown command. Send /help to see the list of available commands`,
         unknownError : `Unkown error occurred! Please report this issue to our support chat @threej_discuss`,
         reply_markup : {
             addNewChat : [
-                [Markup.button.url('🔐 Add private chat',`https://t.me/${process.env.BOT_USERNAME.substring(1)}?startgroup=claimchat`)]
+                [Markup.button.url('🔐 Add private chat',`https://t.me/${process.env.BOT_USERNAME.substring(1)}?startgroup=claimchat`)],
+                [Markup.button.callback('◀️ Back','💠')]
             ],
             addNewGroup : [
-                [Markup.button.url('🔐 Add private chat',`https://t.me/${process.env.BOT_USERNAME.substring(1)}?startgroup=claimchat`)]
+                [Markup.button.url('🔐 Add private chat',`https://t.me/${process.env.BOT_USERNAME.substring(1)}?startgroup=claimchat`)],
+                [Markup.button.callback('◀️ Back','💠')]
+            ],
+            addNewBot : [
+                [Markup.button.callback('◀️ Back','💠')]
             ]
         }
     }

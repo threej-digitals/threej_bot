@@ -47,9 +47,7 @@ bot.on('inline_query', ctx => require('./modules/inlineQueryHandler').handleInli
 // handle text message received from user
 bot.on('text', ctx => require('./modules/textMessage').handleText(ctx, tgbot));
 
-bot.on('sticker',(ctx)=>{
-    console.log(ctx.message)
-})
+bot.on('sticker', ctx => require('./modules/stickers').handleStickers(ctx, tgbot));
 
 // handle errors
 bot.catch((err)=>{tgbot.logError(err)});

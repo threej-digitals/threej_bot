@@ -1,4 +1,6 @@
-module.exports.language = function (cid, Markup, languages){ 
+const { Markup } = require("telegraf");
+
+module.exports.language = function (cid, languages, isSticker){ 
     //add back & close buttons
     languages.push({'◀️':'◀️ Back'},{'💠':'❌ Cancel'});
 
@@ -8,8 +10,8 @@ module.exports.language = function (cid, Markup, languages){
         var index = Math.floor(i/3);
         var code = Object.keys(languages[i])[0];
         //condition for choosing back & close button callback
-        var callback = '💠' == code ? '💠' : ('◀️' == code ? `chooseCategory#{"cid":${cid}}` : `updateLanguage#{"cid":${cid}, "lang":"${code}"}`);
-        
+        var callback = '💠' == code ? '💠' : ('◀️' == code ? `chooseCategory#{"${isSticker ? 'setId' : 'cid'}":${cid}}` : `updateLanguage#{"${isSticker ? 'setId' : 'cid'}":${cid}, "lang":"${code}"}`);
+
         if(keyboard[index] == undefined)
             (keyboard[index]=[]).push(Markup.button.callback(languages[i][code], callback));
         else

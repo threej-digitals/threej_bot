@@ -58,12 +58,12 @@ class Threej{
      * @param {string} error 
      */
     logError(error){
-        if(error instanceof Error)
-            error = `[${new Date().toLocaleString()}] ` + error.stack.toString() + '\n\n';
-        else if(typeof error == 'string')
-            error = `[${new Date().toLocaleString()}] ` + error + '\n\n';
-        else
-            return;
+        if(error instanceof Error){
+            error = `[${new Date().toLocaleString()}] ${error.stack.toString()}\n\n`;
+        }else if(typeof error == 'string'){
+            var err = new Error();
+            error = `[${new Date().toLocaleString()}] ${error}\n ${err.stack.toString()}\n\n`;
+        }else return;
 
         try {
             fs.appendFileSync(path.resolve('errorByThreej.txt'), error);

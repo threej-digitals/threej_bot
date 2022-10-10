@@ -2,17 +2,20 @@ const axios = require('axios');
 const qs = require('qs');
 const { Threej } = require('./threej');
 
+const CATEGORIES = ["🦁 Animals & Pets","🎎 Anime","🎨 Art & Paintings","📚 Books","🏎 Cars","💼 Career","💃🏼 Celebrity","👨‍👨‍👧‍👦 Community","⛓ Cryptocurrency","👩‍❤️‍👨 Dating","🎓 Educational","🎭 Entertainment","🧐 Facts","💰 Finance","😂 Funny","🎮 Gaming","🃏 GIFs","💻 Hacking","👩‍⚕️ Health","🧛 Horror","🧠 Knowledge","🔮 Life Hacks","💅🏻 Lifestyle","😂 Memes","🎬 Movies","🌞 Motivational","🏕 Nature","📰 News","🤵🏻 Political","🙋🏼 Personal","🖼 Photography","🏋️ Productive","💻 Programming","🔗 Promotion","🌐 Proxy","🗺 Regional","🥰 Relationship","🔬 Science","🎧 Song","📱 Social","🛒 Shopping","🕉 Spiritual","🏀 Sports","🚀 Startup","🏙 Stickers","📈 Stocks","🤴 Stories","📲 Technical","📨 Telegram","💭 Thoughts","💫 Tips & tricks","✈️ Travelling","🧵 Utility","📹 Videos","🎲 Others",""];
+
 /**
- * Chat member status as per telegram API
+ * Chat action
  */
-const MEMBERSTATUS = {
-    'creator' : 1,
-    'administrator' : 2,
-    'member' : 3,
-    'left' : 4,
-    'restricted' : 5,
-    'kicked' : 6,
+const CHATACTION = {
+    'UPVOTE' : 1,
+    'DOWNVOTE' : 2
 }
+
+/**
+ * Flags for reporting contents
+ */
+const CHATFLAG = ['SFW','Copyright','NSFW','Spam','Scam','Illegal Activities','Violence','Child Abuse','Dead chat'];
 
 /**
  * Chat status object
@@ -24,26 +27,31 @@ const CHATSTATUS = {
 }
 
 /**
- * Chat action
+ * Chat member status as per telegram API
  */
-const CHATACTION = {
-    'UPVOTE' : 1,
-    'DOWNVOTE' : 2
+ const MEMBERSTATUS = {
+    'creator' : 1,
+    'administrator' : 2,
+    'member' : 3,
+    'left' : 4,
+    'restricted' : 5,
+    'kicked' : 6,
+}
+
+const STICKERTYPE = {
+    'regular' : 1,
+    'mask' : 2,
+    'custom_emoji' : 3
 }
 
 /**
  * User preferences
  */
-const USERPREFERENCES = {
+ const USERPREFERENCES = {
     '' : 1,
     'NOUPDATES' : 2,
     'BLOCKED' : 3
 }
-
-/**
- * Flags for reporting contents
- */
-const CHATFLAG = ['SFW','Copyright','NSFW','Spam','Scam','Illegal Activities','Violence','Child Abuse','Dead chat'];
 
 class Tgbot extends Threej{
 
@@ -73,7 +81,10 @@ class Tgbot extends Threej{
 
     // Inline keyboards
     keyboards = {
-        primaryMenu : require('../keyboards/primaryMenu').menu
+        primaryMenu : require('../keyboards/primaryMenu').menu,
+        secondaryMenu : require('../keyboards/secondaryMenu').menu,
+        category : require('../keyboards/category').category,
+        language : require('../keyboards/language').language
     };
 
     // Categorized stickers object
@@ -81,6 +92,7 @@ class Tgbot extends Threej{
 
     // object to store user details when user is logged In
     user = {};
+
 
     // Broadcast function
     broadcast = require('./broadcast').broadcast;
@@ -173,29 +185,31 @@ class Tgbot extends Threej{
 
         try {
             const now = Date.now()/1000;
-            const sql = `INSERT INTO ?? (LISTERID, LISTERROLE, CHATID, TITLE, DESCRIPTION, USERNAME, CTYPE, LINK, PHOTO, SUBSCOUNT, STATUS, CUPDATE, VIEWS, LISTEDON, PICSCOUNT, VIDEOSCOUNT, LINKSCOUNT, POSTCOUNT, FILECOUNT) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`;
+            const sql = `INSERT INTO ?? (LISTERID, LISTERROLE, CHATID, TITLE, DESCRIPTION, USERNAME, CTYPE, LINK, PHOTO, SUBSCOUNT, STATUS, CUPDATE, VIEWS, LISTEDON, PICSCOUNT, VIDEOSCOUNT, LINKSCOUNT, POSTCOUNT, FILECOUNT) VALUES (?)`;
             const values = [
                 process.env.CHATSTABLE,
-                chatDetails.LISTERID,
-                chatDetails.LISTERROLE,
-                chatDetails.CHATID || null,
-                chatDetails.TITLE,
-                chatDetails.DESCRIPTION.replace(/<[^>]*>?/gm, '') || '',
-                chatDetails.USERNAME || null,
-                chatDetails.CTYPE,
-                chatDetails.LINK || '',
-                chatDetails.PHOTO || '',
-                chatDetails.SUBSCOUNT || null,
-                chatDetails.STATUS,
-                now,
-                Math.round(chatDetails.VIEWS) || null,
-                now,
-                chatDetails.PICSCOUNT || null,
-                chatDetails.VIDEOSCOUNT || null,
-                chatDetails.LINKSCOUNT || null,
-                chatDetails.POSTCOUNT || null,
-                chatDetails.FILECOUNT || null
-            ]
+                [
+                    chatDetails.LISTERID,
+                    chatDetails.LISTERROLE,
+                    chatDetails.CHATID || null,
+                    chatDetails.TITLE,
+                    chatDetails.DESCRIPTION.replace(/<[^>]*>?/gm, '') || '',
+                    chatDetails.USERNAME || null,
+                    chatDetails.CTYPE,
+                    chatDetails.LINK || '',
+                    chatDetails.PHOTO || '',
+                    chatDetails.SUBSCOUNT || null,
+                    chatDetails.STATUS,
+                    now,
+                    Math.round(chatDetails.VIEWS) || null,
+                    now,
+                    chatDetails.PICSCOUNT || null,
+                    chatDetails.VIDEOSCOUNT || null,
+                    chatDetails.LINKSCOUNT || null,
+                    chatDetails.POSTCOUNT || null,
+                    chatDetails.FILECOUNT || null
+                ]
+            ];
             return await this.query(sql, values);
 
         } catch (error) {
@@ -289,15 +303,17 @@ class Tgbot extends Threej{
 
             if(newUser){
                 // Add user to DB
-                const sql = 'INSERT INTO ??(`USERNAME`, `NAME`, `TGID`, `LANGCODE`, `REGDATE`) VALUES(?,?,?,?,?)';
+                const sql = 'INSERT INTO ??(`USERNAME`, `NAME`, `TGID`, `LANGCODE`, `REGDATE`) VALUES(?)';
                 const values = [
                     process.env.USERSTABLE,
-                    user.username || null,
-                    user.first_name + ' ' + user.last_name,
-                    user.id,
-                    user.language_code || 'en',
-                    user.regdate || Date.now()/1000
-                ]
+                    [
+                        user.username || null,
+                        user.first_name + ' ' + user.last_name,
+                        user.id,
+                        user.language_code || 'en',
+                        user.regdate || Date.now()/1000
+                    ]
+                ];
                 const result = await this.query(sql, values);
                 if(result.affectedRows)
                     await this.logUser(user);
@@ -326,6 +342,63 @@ class Tgbot extends Threej{
 
         chatDetails.STATUS = CHATSTATUS['new'];
         return await this.insertChat(chatDetails);
+    }
+
+    /**
+     * 
+     * @param {object} stickerSet 
+     */
+    async newStickerSet(stickerSet){
+        if(typeof stickerSet.name == 'undefined') return;
+
+        try {
+            var result = await this.query(
+                'INSERT INTO ??(`NAME`, `TITLE`, `THUMB`, `ISANIMATED`, `ISVIDEO`, `TYPE`, `MASK`, `LISTERID`, `LISTEDON`) VALUES (?)',
+                [
+                    process.env.STICKERSETTABLE,
+                    [
+                        stickerSet.name,
+                        stickerSet.title,
+                        stickerSet?.thumb?.file_id || '',
+                        stickerSet.is_animated,
+                        stickerSet.is_video,
+                        STICKERTYPE[stickerSet.sticker_type],
+                        stickerSet.contains_masks,
+                        this.user.TUID,
+                        Date.now()
+                    ]
+                ]
+            );
+            if(result.affectedRows == 1){
+                var setId = result.insertId;
+    
+                var sql = 'INSERT INTO ??(`SETID`, `EMOJI`, `FILEID`, `ISANIMATED`, `ISVIDEO`, `ISPREMIUM`) VALUES ';
+                var stickers = [process.env.STICKERSTABLE];
+                stickerSet.stickers.forEach(s => {
+                    sql += '(?),';
+                    stickers.push(
+                        [
+                            setId,
+                            s.emoji,
+                            s.file_id,
+                            s.is_animated,
+                            s.is_video,
+                            s.premium_animation ? true : false
+                        ]
+                    )
+                })
+                result = await this.query(
+                    sql.substring(0,sql.length-1),
+                    stickers
+                )
+                if(result.affectedRows > 0)
+                    return {setId: setId};
+            }
+        } catch (error) {
+            this.logError(error);
+            return false;
+        }
+        return false;
     }
 
     async postLinkToReddit(title, link){
@@ -388,6 +461,22 @@ class Tgbot extends Threej{
                 chatType.toLowerCase()
             ]
         );
+    }
+
+    async searchStickerSet(setName){
+        try {
+            return await this.query(
+                'SELECT * FROM ?? WHERE ?? = ?',
+                [
+                    process.env.STICKERSETTABLE,
+                    !Math.round(setName) ? 'NAME' : 'SETID',
+                    setName || ''
+                ]
+            )
+        } catch (error) {
+            this.logError(error);
+            return false;
+        }
     }
 
     // Message formatting
@@ -468,6 +557,29 @@ class Tgbot extends Threej{
         }
     }
 
+    async updateSticker(setId, options = {}){
+        const sql = `UPDATE ?? SET 
+            CATEGORY = COALESCE(?, CATEGORY), 
+            LANGUAGE = COALESCE(?, LANGUAGE),
+            FLAG = COALESCE(?, FLAG),
+            POSTID = COALESCE(?, POSTID)
+            WHERE SETID = ?`;
+        const values = [
+            process.env.STICKERSETTABLE,
+            options.CATEGORY || null,
+            options.LANGUAGE || null,
+            CHATFLAG.indexOf(options.FLAG) || null,
+            options.POSTID || null,
+            setId
+        ];
+        try {
+            return await this.query(sql, values);
+        } catch (error) {
+            this.logError(error);
+            return false;
+        }
+    }
+
     /**
      * Updates chat flag
      * @param {number} chatId 
@@ -513,4 +625,12 @@ class Tgbot extends Threej{
         }
     }
 }
-module.exports = { Tgbot, CHATSTATUS, MEMBERSTATUS, CHATFLAG, USERPREFERENCES};
+
+module.exports = {
+    Tgbot,
+    CATEGORIES,
+    CHATFLAG,
+    CHATSTATUS,
+    MEMBERSTATUS,
+    USERPREFERENCES
+};

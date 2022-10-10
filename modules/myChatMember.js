@@ -1,3 +1,4 @@
+const bot = new (require("telegraf").Telegraf)(process.env.BOT_TOKEN);
 module.exports.myChatMember = async (ctx, tgbot) => {
     // bot removed from chat
     if(ctx.myChatMember.new_chat_member.status == 'left'){
