@@ -7,7 +7,7 @@ const messages = {
         addNewChat : `Okay send me the 🔗 link or username of a public chat, or click on the below button to add a private chat. 👇`,
         addNewGroup : `Okay send me the 🔗 link or username of a public group chat, , or click on the below button to add a private chat. 👇`,
         addNewBot : `Okay send me the 🔗 link or username of Bot...`,
-        addNewSticker : `Feature under development.`,
+        addNewSticker : `Ok. send me the sticker you want to add.`,
         chatListingFailed : `Failed to list your chat. Please report this issue to our support chat @threej_discuss`,
         chatRemoved : `Chat removed from Telegram directory.`,
         chooseCategory : `Choose category for this chat.`,
@@ -28,14 +28,12 @@ const messages = {
         unknownError : `Unkown error occurred! Please report this issue to our support chat @threej_discuss`,
         reply_markup : {
             addNewChat : [
-                [Markup.button.url('🔐 Add private chat',`https://t.me/${process.env.BOT_USERNAME.substring(1)}?startgroup=claimchat`)],
-                [Markup.button.callback('◀️ Back','💠')]
+                [Markup.button.url('🔐 Add private chat',`https://t.me/${process.env.BOT_USERNAME.substring(1)}?startgroup=claimchat`)]
             ],
             addNewGroup : [
-                [Markup.button.url('🔐 Add private chat',`https://t.me/${process.env.BOT_USERNAME.substring(1)}?startgroup=claimchat`)],
-                [Markup.button.callback('◀️ Back','💠')]
+                [Markup.button.url('🔐 Add private chat',`https://t.me/${process.env.BOT_USERNAME.substring(1)}?startgroup=claimchat`)]
             ],
-            addNewBot : [
+            backButton : [
                 [Markup.button.callback('◀️ Back','💠')]
             ]
         }

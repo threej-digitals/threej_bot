@@ -35,6 +35,8 @@ bot.use(async (ctx, next)=>{
     return await next();
 });
 
+bot.on('sticker', ctx => require('./modules/stickers').handleStickers(ctx, tgbot));
+
 // handle change in chat memeber status
 bot.on('my_chat_member', ctx => require('./modules/myChatMember').myChatMember(ctx, tgbot));
 
@@ -46,8 +48,6 @@ bot.on('inline_query', ctx => require('./modules/inlineQueryHandler').handleInli
 
 // handle text message received from user
 bot.on('text', ctx => require('./modules/textMessage').handleText(ctx, tgbot));
-
-bot.on('sticker', ctx => require('./modules/stickers').handleStickers(ctx, tgbot));
 
 // handle errors
 bot.catch((err)=>{tgbot.logError(err)});

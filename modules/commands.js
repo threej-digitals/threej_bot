@@ -53,7 +53,15 @@ module.exports.handleCommands = function(update, tgbot){
             };
             if(commands.reply_markup[command]){
                 options = Object.assign(options, {
-                    reply_markup: Markup.inlineKeyboard(commands.reply_markup[command]).reply_markup
+                    reply_markup: Markup.inlineKeyboard(
+                        commands.reply_markup[command].concat(
+                            commands.reply_markup['backButton']
+                        )
+                    ).reply_markup
+                });
+            }else{
+                options = Object.assign(options, {
+                    reply_markup: Markup.inlineKeyboard(commands.reply_markup['backButton']).reply_markup
                 });
             }
             return await ctx.reply(commands[command].toString(), options);

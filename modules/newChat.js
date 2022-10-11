@@ -81,6 +81,9 @@ module.exports.updateAndGetChat = async (chat, tgbot, listerRole = 'member') => 
             if(response && response.affectedRows){
                 return await tgbot.getChatFromDB(chatDetails.USERNAME || chatDetails.CHATID);
             }else{
+                if(response.indexOf('Duplicate entry') > -1 && response.indexOf('CHATID') > -1) {
+                    return await tgbot.updateChat(chatDetails.CHATID, chatDetails);
+                }
                 tgbot.logError(response);
                 return commands['chatListingFailed'];
             }

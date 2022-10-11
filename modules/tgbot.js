@@ -214,7 +214,7 @@ class Tgbot extends Threej{
 
         } catch (error) {
             this.logError(error);
-            return false;
+            return error.message;
         }
     }
 

@@ -27,7 +27,7 @@ module.exports.handleStickers = async (ctx, tgbot) => {
 
     //send category keyboard
     await ctx.reply('Choose category for this sticker');
-    await ctx.sendSticker(
+    return await ctx.sendSticker(
         ctx.message.sticker.file_id,
         {
             reply_markup: tgbot.keyboards.category(result.setId, CATEGORIES, true)

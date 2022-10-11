@@ -20,8 +20,9 @@ module.exports.handleCallback = async (ctx, tgbot) => {
             break;
             //list stickers
             case '🏞' === key:
-                // await ctx.sendMessage('Okay reply with a sticker or send me the name of sticker set following with $.\n\nFor example: $UtyaD');
-                await ctx.answerCbQuery(commands['addNewSticker']);
+                await ctx.editMessageText(commands['addNewSticker'], {
+                    reply_markup : Markup.inlineKeyboard(commands.reply_markup['backButton']).reply_markup
+                });
             break;
             //Advance search options
             case '🕵️‍♂️' === key:
@@ -107,7 +108,7 @@ module.exports.handleCallback = async (ctx, tgbot) => {
                     await ctx.answerCbQuery(commands['chooseLanguage']);
                     ctx.editMessageReplyMarkup(
                         Markup.inlineKeyboard(
-                            tgbot.keyboards.language(cbData.cid || cbData.setId, LANGUAGES, true)
+                            tgbot.keyboards.language(cbData.cid || cbData.setId, LANGUAGES, cbData.setId ? true : false)
                         ).reply_markup
                     );
                 }else{
@@ -271,8 +272,12 @@ module.exports.handleCallback = async (ctx, tgbot) => {
         }
     } catch (error) {
         ctx.answerCbQuery();
-        if(!tgbot.knownErrors(error))
-            tgbot.logError(error + JSON.stringify(ctx.update));
+        if(!tgbot.knownErrors(error)){
+            error = typeof error.message == 'object' ? JSON.stringify(error.message)
+            : error.message + JSON.stringify(ctx.update);
+            
+            tgbot.logError(error);
+        }
     }
     return true;
 }
