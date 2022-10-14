@@ -6,7 +6,7 @@ async function getChatDetails(username, tgbot, chatDetails = {}, update = false)
 
     //scrap public chat details
     if(typeof username == 'string'){
-        Object.assign(chatDetails, await scrapper.scrapChat(username, tgbot.chatDetailsFormat));
+        chatDetails = Object.assign(chatDetails, await scrapper.scrapChat(username, tgbot.chatDetailsFormat));
         if(typeof chatDetails.PHOTO == 'string' && chatDetails.PHOTO.length > 10){
             chatDetails.PHOTO = await tgbot.saveRemoteFile(chatDetails.PHOTO, process.env.ABS_HOMEPATH + process.env.ASSETS_FOLDER,'chat'+(chatDetails.CHATID || chatDetails.USERNAME)) || '';
         }
@@ -21,9 +21,11 @@ async function getChatDetails(username, tgbot, chatDetails = {}, update = false)
             try {
                 result = await bot.telegram.getChat(username);
             } catch (error) {
-                if(typeof username == 'string' && chatDetails.CHATID < 0)
-                    result = await bot.telegram.getChat(chatDetails.CHATID);
-                else throw error;
+                if(typeof username == 'string' && chatDetails.CHATID < 0){
+                    try {
+                        result = await bot.telegram.getChat(chatDetails.CHATID);
+                    }catch(error){throw error;}
+                }else throw error;
             }
 
             var chatDetails = tgbot.chatDetailsFormat;
@@ -32,7 +34,7 @@ async function getChatDetails(username, tgbot, chatDetails = {}, update = false)
             chatDetails.DESCRIPTION = result.description;
             chatDetails.USERNAME = result.username || '';
             chatDetails.CTYPE = result.type || '';
-            chatDetails.LINK = result.invite_link || '';
+            chatDetails.LINK = result.invite_link || (chatDetails.USERNAME.length >= 5 ? "https://telegram.me/" + chatDetails.USERNAME : "");
 
             chatDetails.SUBSCOUNT = await bot.telegram.getChatMembersCount(result.id);
 
@@ -43,8 +45,8 @@ async function getChatDetails(username, tgbot, chatDetails = {}, update = false)
                 chatDetails.PHOTO = await tgbot.saveRemoteFile(fileLink.href, process.env.ABS_HOMEPATH + process.env.ASSETS_FOLDER,'chat'+result.id) || '';
             }
         } catch (error) {
-            tgbot.logError(error)
-            return 'Chat not found!';
+            if(!tgbot.knownErrors(error)) tgbot.logError(error);
+            return 'Chat not found';
         }
     }
     chatDetails.PHOTO = chatDetails.PHOTO.replace(process.env.ABS_HOMEPATH,'');
@@ -77,11 +79,11 @@ module.exports.updateAndGetChat = async (chat, tgbot, listerRole = 'member') => 
             }
 
             //-----Store chat details to DB------//
-            const response = await tgbot.newChat(chatDetails, listerRole);
-            if(response && response.affectedRows){
+            try {
+                await tgbot.newChat(chatDetails, listerRole);
                 return await tgbot.getChatFromDB(chatDetails.USERNAME || chatDetails.CHATID);
-            }else{
-                if(response.indexOf('Duplicate entry') > -1 && response.indexOf('CHATID') > -1) {
+            } catch (error) {
+                if(error.message.indexOf('Duplicate entry') > -1 && error.message.indexOf('CHATID') > -1) {
                     return await tgbot.updateChat(chatDetails.CHATID, chatDetails);
                 }
                 tgbot.logError(response);
@@ -113,8 +115,10 @@ module.exports.updateAndGetChat = async (chat, tgbot, listerRole = 'member') => 
             //update chat with new details
             await tgbot.updateChat(chatId, chatDetails);
             chatDetails = await tgbot.getChatFromDB(chatId);
-        }else if(listerRole != 'member' && chatDetails.LISTERROLE != MEMBERSTATUS['creator']){
-            // update lister role
+        }
+
+        // update lister role
+        else if(listerRole != 'member' && chatDetails.LISTERROLE != MEMBERSTATUS['creator']){
             await tgbot.updateChat(chatDetails.CID, {
                 LISTERID: tgbot.user.TUID,
                 LISTERROLE:listerRole

@@ -82,16 +82,24 @@ module.exports.handleCallback = async (ctx, tgbot) => {
 
             //Send category keyboard
             case /^chooseCategory#{.*}$/.test(key):
-                const cid = JSON.parse(key.substr(15)).cid;
-                var chatDetails = await tgbot.getChatFromDB(cid);
+                var cbData = JSON.parse(key.substr(15));
+                if('setId' in cbData){
+                    await ctx.editMessageReplyMarkup(
+                        tgbot.keyboards.category(cbData.setId, CATEGORIES, true)
+                    );
+                }
 
-                // return if neither lister nor admin
-                if(chatDetails.LISTERID != tgbot.user.TUID && tgbot.user.TGID != process.env.BOT_ADMIN) return;
-
-                await ctx.answerCbQuery(commands['chooseCategory']);
-                await ctx.editMessageReplyMarkup(
-                    tgbot.keyboards.category(cid, CATEGORIES)
-                );
+                if('cid' in cbData){
+                    var chatDetails = await tgbot.getChatFromDB(cbData.cid);
+    
+                    // return if neither lister nor admin
+                    if(chatDetails.LISTERID != tgbot.user.TUID && tgbot.user.TGID != process.env.BOT_ADMIN) return;
+    
+                    await ctx.answerCbQuery(commands['chooseCategory']);
+                    await ctx.editMessageReplyMarkup(
+                        tgbot.keyboards.category(cbData.cid, CATEGORIES)
+                    );
+                }
             break;
 
             //update category and send language keyboard
@@ -123,12 +131,12 @@ module.exports.handleCallback = async (ctx, tgbot) => {
                 if(cbData.cid){
                     var response = await tgbot.updateChat(cbData.cid, {CLANGUAGE: cbData.lang, STATUS: 'listed'});
                     if(response){
-                        sendChatConfirmation(cbData, ctx, tgbot);
+                        return await sendChatConfirmation(cbData, ctx, tgbot, commands);
                     }
                 }else if(cbData.setId){
                     var response = await tgbot.updateSticker(cbData.setId, {LANGUAGE: cbData.lang});
                     if(response){
-                        sendStickerConfirmation(cbData, ctx, tgbot);
+                        return await sendStickerConfirmation(cbData, ctx, tgbot);
                     }
                 }
                 throw new Error(response);
@@ -209,6 +217,7 @@ module.exports.handleCallback = async (ctx, tgbot) => {
                 await ctx.editMessageReplyMarkup(Markup.inlineKeyboard(ik).reply_markup);
             break;
 
+            //report chat
             case /^🚫#{.*}$/.test(key):
                 // return if not private chat
                 if(ctx.chat?.type != 'private') return;
@@ -282,7 +291,7 @@ module.exports.handleCallback = async (ctx, tgbot) => {
     return true;
 }
 
-async function sendChatConfirmation(cbData, ctx, tgbot){
+async function sendChatConfirmation(cbData, ctx, tgbot, commands){
     var sharingLink='';
     const chatDetails = await tgbot.getChatFromDB(cbData.cid);
     sharingLink = `${process.env.TGPAGELINK}?tgcontentid=${cbData.cid}&username=${(chatDetails.USERNAME || '')}`;
@@ -324,12 +333,16 @@ async function sendChatConfirmation(cbData, ctx, tgbot){
 async function sendStickerConfirmation(cbData, ctx, tgbot){
     var sharingLink='';
     const stickerSet = (await tgbot.searchStickerSet(cbData.setId))[0];
+    if(!stickerSet){
+        tgbot.logError(JSON.stringify(cbData) + JSON.stringify(ctx.update));
+        return;
+    }
     sharingLink = `${process.env.HOMEURI}telegram-sticker?setid=${cbData.setId}&name=${(stickerSet.NAME || '')}`;
 
     //delete message
     await ctx.deleteMessage();
 
-    //Prepare chat to send for moderation
+    //send sticker for moderation
     var message = `New sticker\nLink: t.me/addstickers/${stickerSet.NAME}\nCategory: ${CATEGORIES[stickerSet.CATEGORY]}\nLanguage: ${stickerSet.LANGUAGE}\nSharing link: ${sharingLink}`;
     await bot.telegram.sendMessage(process.env.BOT_ADMIN, message, {
         parse_mode: "HTML",

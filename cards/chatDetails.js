@@ -1,5 +1,5 @@
 const { Markup } = require('telegraf');
-const {MEMBERSTATUS, CHATSTATUS} = require('../modules/tgbot');
+const {MEMBERSTATUS, CHATSTATUS, CHATFLAG} = require('../modules/tgbot');
 module.exports.chatDetailsCard = function (chatDetails, tgbot) {
     //----Format chat details as text message----//
     var text = '<b>Verify chat details</b>\n\n';
@@ -9,12 +9,14 @@ module.exports.chatDetailsCard = function (chatDetails, tgbot) {
         SUBSCOUNT:'Subscribers:',
         USERNAME:'Username   :',
         LINK:'Link       :',
-        CTYPE:'Type       :'
+        CTYPE:'Type       :',
+        FLAG:'Flag       :'
     }
     for(const e in values){
         //strip html tags from description
-        if(e === 'DESCRIPTION') chatDetails[e] = chatDetails[e].replace(/<[^>]*>?/gm, '');
+        if(e === 'DESCRIPTION') chatDetails[e] = (chatDetails[e] || '').replace(/<[^>]*>?/gm, '');
         if(e === 'USERNAME' && chatDetails[e] !== '' && chatDetails[e] !== null) chatDetails[e] = '@' + chatDetails[e];
+        if(e === 'FLAG') chatDetails[e] = CHATFLAG[chatDetails[e] || 0];
         text += `<code>${values[e]}</code> ${(chatDetails[e] || '').toString()}\n`;
     }
 

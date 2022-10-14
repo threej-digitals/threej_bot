@@ -97,6 +97,7 @@ module.exports.handleCommands = function(update, tgbot){
                 });
                 if(payload['cid']){
                     const chatDetails = await updateAndGetChat({id: payload.cid},tgbot);
+                    if(!chatDetails) return await ctx.reply(commands['Chat not found!']);
 
                     // send poll to report a chat
                     if(payload['report']){
@@ -111,7 +112,7 @@ module.exports.handleCommands = function(update, tgbot){
                     });
                 }
             } catch (error) {
-                tgbot.logError(error);
+                tgbot.logError(error.message + JSON.stringify(ctx.update));
             }
         }
 

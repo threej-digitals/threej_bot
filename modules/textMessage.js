@@ -16,12 +16,19 @@ module.exports.handleText = async (ctx, tgbot) => {
     var text = ctx.message.text;
     var username = false;
     try {
+        //check for sticker link
+        var match = text.match(/t\.me\/addstickers\/([\S]+)$/)
+        if(match && match.length === 2){
+            ctx.message.sticker = {set_name : match[1]}
+            return await require('./stickers').handleStickers(ctx, tgbot);
+        }
+
         //----check for telegram chat link-----//
-        var match = text.match(/([^ \t\n]*)?(t\.me|telegram\.me|telegram\.dog)\/([0-9a-z-_A-Z]*)/);
+        match = text.match(/([^ \t\n]*)?(t\.me|telegram\.me|telegram\.dog)\/([0-9a-z-_A-Z]*)/);
         (match && match.length === 4) ? username = match[3]:'';
 
+        //-----Check for username-----//
         if(!username){
-            //-----Check for username-----//
             match = text.match(/^.*@([0-9a-zA-Z-_]*).*$/);
             if(match && match.length == 2){
                 username = match[1];
@@ -33,7 +40,9 @@ module.exports.handleText = async (ctx, tgbot) => {
 
             const chatDetails = await tgbot.updateAndGetChat({username: username}, tgbot);
             if(typeof chatDetails == 'string' || chatDetails == false){
-                tgbot.logError('error while handling ' + JSON.stringify(ctx.update));
+                if(!tgbot.knownErrors({message: chatDetails})){
+                    tgbot.logError('error while handling ' + JSON.stringify(ctx.update));
+                }
                 return await ctx.reply(chatDetails);
             }
 
@@ -43,7 +52,7 @@ module.exports.handleText = async (ctx, tgbot) => {
         //-----default error message------//
         return await ctx.reply(commands['unknownCommand']);
     } catch (error) {
-        tgbot.logError(error + JSON.stringify(ctx.update));
+        tgbot.logError(error.message + JSON.stringify(ctx.update) + error.stack.toString());
         await ctx.reply(commands['unknownError']);
         await bot.telegram.sendMessage(process.env.BOT_ADMIN, text + '; Err: ' + error.message);
     }
