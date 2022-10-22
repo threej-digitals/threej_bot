@@ -2,7 +2,9 @@ const { Markup } = require("telegraf");
 
 module.exports.language = function (cid, languages, isSticker){ 
     //add back & close buttons
-    languages.push({'◀️':'◀️ Back'},{'💠':'❌ Cancel'});
+    if(!('◀️' in languages)){
+        languages.push({'◀️':'◀️ Back'},{'💠':'❌ Cancel'});
+    }
 
     var keyboard = [];
     var i = 0;

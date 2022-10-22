@@ -1,6 +1,15 @@
 const { Markup } = require('telegraf');
 const {MEMBERSTATUS, CHATSTATUS, CHATFLAG} = require('../modules/tgbot');
 module.exports.chatDetailsCard = function (chatDetails, tgbot) {
+
+    if(!chatDetails){
+        return {
+            text : 'Chat not found',
+            markup : [[]],
+            Markup
+        };
+    }
+
     //----Format chat details as text message----//
     var text = '<b>Verify chat details</b>\n\n';
     const values = {

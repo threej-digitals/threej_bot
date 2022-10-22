@@ -59,7 +59,7 @@ class Threej{
      */
     logError(error){
         if(error instanceof Error){
-            error = `[${new Date().toLocaleString()}] ${error.stack.toString()}\n\n`;
+            error = `[${new Date().toLocaleString()}] ${error.stack?.toString() || ''}\n\n`;
         }else if(typeof error == 'string'){
             error = `[${new Date().toLocaleString()}] ${error}\n ${(new Error()).stack.toString()}\n\n`;
         }else return;

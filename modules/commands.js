@@ -46,7 +46,7 @@ module.exports.handleCommands = function(update, tgbot){
             if(ctx.chat?.type != 'private') return;
             
             // reply with corresponding message
-            const command = ctx.message.text.substring(1);
+            const command = (ctx.message.text.match(/^\/(\S+) ?/))[1];
             let options = {
                 parse_mode :'HTML',
                 disable_web_page_preview:true

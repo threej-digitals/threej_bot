@@ -46,7 +46,7 @@ async function getChatDetails(username, tgbot, chatDetails = {}, update = false)
             }
         } catch (error) {
             if(!tgbot.knownErrors(error)) tgbot.logError(error);
-            return 'Chat not found';
+            return 'chat not found';
         }
     }
     chatDetails.PHOTO = chatDetails.PHOTO.replace(process.env.ABS_HOMEPATH,'');
@@ -81,23 +81,29 @@ module.exports.updateAndGetChat = async (chat, tgbot, listerRole = 'member') => 
             //-----Store chat details to DB------//
             try {
                 await tgbot.newChat(chatDetails, listerRole);
-                return await tgbot.getChatFromDB(chatDetails.USERNAME || chatDetails.CHATID);
             } catch (error) {
                 if(error.message.indexOf('Duplicate entry') > -1 && error.message.indexOf('CHATID') > -1) {
-                    return await tgbot.updateChat(chatDetails.CHATID, chatDetails);
+                    await tgbot.updateChat(chatDetails.CHATID, chatDetails);
+                }else{
+                    tgbot.logError(error.message);
+                    return commands['chatListingFailed'];
                 }
-                tgbot.logError(response);
-                return commands['chatListingFailed'];
             }
+            return await tgbot.getChatFromDB(chatDetails.USERNAME || chatDetails.CHATID);
         }
 
         //update chat if 24hr passed
         if((Date.now()/1000 - chatDetails.CUPDATE) > 86400){
             var chatId = chatDetails.CID;
-            chatDetails = await getChatDetails(chat.username || chat.id, tgbot, chatDetails, true);
+            try {
+                chatDetails = await getChatDetails(chat.username || chat.id, tgbot, chatDetails, true);
+            } catch (error) {
+                if(error.message.indexOf('chat not found') == -1)
+                    throw error;
+            }
 
             // Unlist dead chats
-            if(chatDetails == 'Chat not found!'){
+            if(typeof chatDetails == 'string' && chatDetails.indexOf('chat not found!') > -1){
                 await tgbot.updateChat(chatId, {
                     STATUS: 'unlisted'
                 });

@@ -39,7 +39,8 @@ module.exports.handleText = async (ctx, tgbot) => {
         if(username){
 
             const chatDetails = await tgbot.updateAndGetChat({username: username}, tgbot);
-            if(typeof chatDetails == 'string' || chatDetails == false){
+            if(typeof chatDetails != 'object'){
+                if(!chatDetails) return;
                 if(!tgbot.knownErrors({message: chatDetails})){
                     tgbot.logError('error while handling ' + JSON.stringify(ctx.update));
                 }

@@ -193,7 +193,7 @@ class Tgbot extends Threej{
                     chatDetails.LISTERROLE,
                     chatDetails.CHATID || null,
                     chatDetails.TITLE,
-                    chatDetails.DESCRIPTION.replace(/<[^>]*>?/gm, '') || '',
+                    chatDetails.DESCRIPTION?.replace(/<[^>]*>?/gm, '') || '',
                     chatDetails.USERNAME || null,
                     chatDetails.CTYPE,
                     chatDetails.LINK || '',
@@ -257,27 +257,28 @@ class Tgbot extends Threej{
             'matching document found for id',
             'bot is not a member',
             'user is an administrator of the chat',
-            'USER_NOT_PARTICIPANT',
-            'CHAT_ADMIN_REQUIRED',
+            'user_not_participant',
+            'chat_admin_required',
             "message can't be deleted",
             'group chat was upgraded to a supergroup',
-            'CHANNEL_PRIVATE',
+            'channel_private',
             'method is available only for supergroups',
             'have no rights to send a message',
-            'CHAT_WRITE_FORBIDDEN',
+            'chat_write_forbidden',
             'message identifier is not specified',
             'demote chat creator',
-            'USER_BANNED_IN_CHANNEL',
-            'Too Many Requests',
+            'user_banned_in_channel',
+            'too many requests',
             'message is not modified',
             'user not found',
-            'WEBDOCUMENT_URL_INVALID',
+            'webdocument_url_invalid',
             'bot was blocked by the user',
-            'Chat not found',
-            'Chat is not eligible for listing.'
+            'chat not found',
+            'chat is not eligible for listing.',
+            'bot can\'t initiate conversation with a user'
         ];
         for (const message of dismissableErrors) {
-            if (error.message.indexOf(message) > -1) {
+            if (error.message.toLowerCase().indexOf(message) > -1) {
                 return true;
             }
         }
@@ -394,7 +395,7 @@ class Tgbot extends Threej{
                     stickers
                 )
                 if(result.affectedRows > 0)
-                    return {setId: setId};
+                    return {SETID: setId};
             }
         } catch (error) {
             this.logError(error);
