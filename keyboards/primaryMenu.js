@@ -12,6 +12,7 @@ module.exports.menu = function (Markup){
                 Markup.button.callback('🏞 Add new sticker','🏞')
             ],
             [
+                Markup.button.url("🌉 Search stickers","https://telegram.me/stkrssbot"),
                 Markup.button.callback('⏩ More options',`💠💠`)
             ]
         ]).reply_markup

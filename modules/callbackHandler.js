@@ -34,9 +34,6 @@ module.exports.handleCallback = async (ctx, tgbot) => {
                         ],
                         [
                             Markup.button.switchToCurrentChat("🤖 Search bots","b "),
-                            Markup.button.url("🌉 Search stickers","https://telegram.me/stkrssbot"),
-                        ],
-                        [
                             Markup.button.callback('◀️ Back','💠')
                         ]
                     ]

@@ -83,7 +83,11 @@ module.exports.updateAndGetChat = async (chat, tgbot, listerRole = 'member') => 
                 await tgbot.newChat(chatDetails, listerRole);
             } catch (error) {
                 if(error.message.indexOf('Duplicate entry') > -1 && error.message.indexOf('CHATID') > -1) {
-                    await tgbot.updateChat(chatDetails.CHATID, chatDetails);
+                    try {
+                        await tgbot.updateChat(chatDetails.CHATID, chatDetails);
+                    } catch (error) {
+                        return tgbot.logError(error.message);
+                    }
                 }else{
                     tgbot.logError(error.message);
                     return commands['chatListingFailed'];

@@ -4,7 +4,7 @@ const bot = new (require("telegraf").Telegraf)(process.env.BOT_TOKEN);
 module.exports.handleStickers = async (ctx, tgbot) => {
     const commands = require('../messages/commands').commands(tgbot.user.LANGCODE || 'en')[0];
 
-    if(!ctx.message.sticker?.set_name) return;
+    if(!ctx.message.sticker?.set_name || ctx.chat?.type != 'private') return;
 
     //get sticker set from db
     var result = await tgbot.searchStickerSet(ctx.message.sticker.set_name);
@@ -21,7 +21,7 @@ module.exports.handleStickers = async (ctx, tgbot) => {
         }
 
         //get stickerset from db
-        result = await tgbot.searchStickerSet(result.setId);
+        result = await tgbot.searchStickerSet(result.SETID);
     }
     
     if(typeof result == 'object' && result.length > 0){
