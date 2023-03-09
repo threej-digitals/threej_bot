@@ -15,7 +15,9 @@ module.exports.handleCallback = async (ctx, tgbot) => {
             //List chat
             case '💬' === key:
                 await ctx.editMessageText(commands['addNewChat'], {
-                    reply_markup : Markup.inlineKeyboard(commands.reply_markup['addNewChat']).reply_markup
+                    reply_markup : Markup.inlineKeyboard(
+                        (commands.reply_markup['addNewChat']).concat(commands.reply_markup['backButton'])
+                    ).reply_markup
                 });
             break;
             //list stickers

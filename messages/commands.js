@@ -4,7 +4,7 @@ const { Markup } = require('telegraf');
 
 const messages = {
     en : {
-        addNewChat : `Okay send me the 🔗 link or username of a public chat, or click on the below button to add a private chat. 👇`,
+        addNewChat : `Okay send me the 🔗 link or username of a public channel, group & bot, or click on the below button to add a private chat. 👇`,
         addNewGroup : `Okay send me the 🔗 link or username of a public group chat, , or click on the below button to add a private chat. 👇`,
         addNewBot : `Okay send me the 🔗 link or username of Bot...`,
         addNewSticker : `Ok. send me the sticker you want to add.`,
@@ -22,7 +22,7 @@ const messages = {
         promotionRequested : `✅ Promotion request sent to moderators.`,
         rateChat : `⭐️ Ask subsribers to rate this chat`,
         removeChat: `🗑 Remove this chat from Telegram Directory`,
-        start : `Add or explore Telegram chats available in the <a href="${process.env.TGPAGELINK}">Telegram Directory</a>\n\nSubscribe to @directorygram and @threej_in`,
+        start : `Add or explore Telegram chats available in the <a href="https://threej.in">Telegram Directory</a>\n\nSubscribe to @directorygram and @threej_in`,
         stickerListingFailed : `Sticker listing failed. Please report this issue to our support chat @threej_discuss`,
         unknownCommand : `Unknown command. Send /help to see the list of available commands`,
         unknownError : `Unkown error occurred! Please report this issue to our support chat @threej_discuss`,
